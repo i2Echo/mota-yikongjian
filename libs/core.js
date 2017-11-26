@@ -62,6 +62,7 @@ function core() {
             'def': 0,
             'mdef': 0,
             'money': 0,
+            'experience': 0,
             'loc': {'direction': 'down', 'x': 0, 'y': 0},
             'flyRange': [],
             'items': [],
@@ -551,20 +552,32 @@ core.prototype.onclick = function (x, y) {
 
                 var hp = core.getStatus('hp'), atk = core.getStatus('atk'),
                     def = core.getStatus('def'), mdef = core.getStatus('mdef'),
-                    money = core.getStatus('money'), yellowKey = core.itemCount('yellowKey'),
+                    money = core.getStatus('money'), experience = core.getStatus('experience'),
+                    yellowKey = core.itemCount('yellowKey'),
                     blueKey = core.itemCount('blueKey'), redKey = core.itemCount('redKey');
-                var times = core.status.event.data.times, need = eval(core.status.event.data.need);
-                if (need > money) {
-                    core.drawTip("你的金币不足");
+
+                var shop = core.status.event.data;
+                var times = shop.times, need = eval(shop.need);
+                var use = shop.use;
+                var use_text = use=='money'?"金币":"经验";
+
+                var choice = shop.choices[y-5];
+                if (core.isset(choice.need))
+                    need = eval(choice.need);
+
+                if (need > eval(use)) {
+                    core.drawTip("你的"+use_text+"不足");
                     return;
                 }
-                money -= need;
-                eval(core.status.event.data.choices[y - 5].effect);
+
+                eval(use+'-='+need);
+                eval(choice.effect);
                 core.setStatus('hp', hp);
                 core.setStatus('atk', atk);
                 core.setStatus('def', def);
                 core.setStatus('mdef', mdef);
                 core.setStatus('money', money);
+                core.setStatus('experience', experience);
                 core.setItem('yellowKey', yellowKey);
                 core.setItem('blueKey', blueKey);
                 core.setItem('redKey', redKey);
@@ -646,6 +659,8 @@ core.prototype.onclick = function (x, y) {
             }
 
             // TODO add other items
+            if (core.canUseItem(itemId)) core.useItem(itemId);
+            else core.drawTip("当前无法使用"+core.material.items[itemId].name);
 
         }
         else {
@@ -1192,11 +1207,15 @@ core.prototype.battle = function (id, x, y) {
     core.playSound('attack', 'ogg');
     core.status.hero.hp -= damage;
     core.status.hero.money += core.material.enemys[id].money;
+    core.status.hero.experience += core.material.enemys[id].experience;
     core.updateStatusBar();
     core.removeBlock('event', x, y);
     core.canvas.event.clearRect(32 * x, 32 * y, 32, 32);
     core.updateFg();
-    core.drawTip("打败 " + core.material.enemys[id].name + "，金币+" + core.material.enemys[id].money);
+    var hint = "打败 " + core.material.enemys[id].name + "，金币+" + core.material.enemys[id].money;
+    if (core.firstData.enableExperience)
+        hint += "，经验+" + core.material.enemys[id].experience;
+    core.drawTip(hint);
 
     // 打完怪物，触发事件
 
@@ -1252,7 +1271,10 @@ core.prototype.getDamage = function (monsterId) {
     var monster = core.material.enemys[monsterId];
     var hero_atk = core.status.hero.atk, hero_def = core.status.hero.def, hero_mdef = core.status.hero.mdef;
     var mon_hp = monster.hp, mon_atk = monster.atk, mon_def = monster.def, mon_special = monster.special;
-    return core.calDamage(hero_atk, hero_def, hero_mdef, mon_hp, mon_atk, mon_def, mon_special);
+    var damage = core.calDamage(hero_atk, hero_def, hero_mdef, mon_hp, mon_atk, mon_def, mon_special);
+    if (monster.special == 11) // 吸血
+        damage += parseInt(core.status.hero.hp * monster.value);
+    return damage;
 }
 
 core.prototype.getCritical = function (monsterId) {
@@ -1288,7 +1310,8 @@ core.prototype.getCriticalDamage = function (monsterId) {
 
 core.prototype.getDefDamage = function (monsterId) {
     var monster = core.material.enemys[monsterId];
-    return core.getDamage(monsterId) -
+    return core.calDamage(core.status.hero.atk, core.status.hero.def, core.status.hero.mdef,
+        monster.hp, monster.atk, monster.def, monster.special) -
         core.calDamage(core.status.hero.atk, core.status.hero.def + 1, core.status.hero.mdef,
             monster.hp, monster.atk, monster.def, monster.special)
 }
@@ -1646,6 +1669,12 @@ core.prototype.removeBlock = function (map, x, y) {
     }
 }
 
+core.prototype.removeBlockByIds = function (floorId, ids) {
+    ids.sort(function (a,b) {return b-a}).forEach(function (id) {
+        core.status.maps[floorId].blocks.splice(id, 1);
+    });
+}
+
 core.prototype.noPass = function (x, y) {
     if (x > 12 || y > 12 || x < 0 || y < 0) {
         return true;
@@ -1877,7 +1906,7 @@ core.prototype.updateFg = function () {
             else if (damage < hero_hp) color = '#FF7F00';
             else color = '#FF0000';
 
-            if (damage == 999999999) damage = "???";
+            if (damage >= 999999999) damage = "???";
             else if (damage > 100000) damage = (damage / 100000).toFixed(1) + "w";
 
             core.setFillStyle('fg', '#000000');
@@ -1896,6 +1925,15 @@ core.prototype.updateFg = function () {
 /**
  * 地图处理 end
  */
+
+core.prototype.passNet = function(id) {
+    if (id=='lavaNet') {
+        core.status.hero.hp -= 100;
+        core.updateStatusBar();
+        core.drawTip('经过熔岩，生命-100');
+    }
+
+}
 
 /**
  * 物品处理 start
@@ -1943,7 +1981,26 @@ core.prototype.useItem = function (itemId) {
     }
     // 消耗道具
     if (itemCls == 'tools') {
-
+        core.status.hero.items[itemCls][itemId]--;
+        if (itemId == 'earthquake' || itemId == 'bomb' || itemId == 'pickaxe') {
+            // 地震卷轴/炸弹/破墙镐
+            core.removeBlockByIds(core.status.floorId, core.status.event.data);
+            core.drawMap(core.status.floorId, function () {
+                core.drawHero(core.getHeroLoc('direction'), core.getHeroLoc('x'), core.getHeroLoc('y'), 'stop');
+                core.updateFg();
+                core.drawTip(core.material.items[itemId].name + "使用成功");
+            });
+        }
+        if (itemId == 'centerFly') {
+            // 对称飞
+            core.clearMap('hero', 0, 0, 416, 416);
+            core.setHeroLoc('x', core.status.event.data.x);
+            core.setHeroLoc('y', core.status.event.data.y);
+            core.drawHero(core.getHeroLoc('direction'), core.getHeroLoc('x'), core.getHeroLoc('y'), 'stop');
+            core.drawTip(core.material.items[itemId].name + "使用成功");
+        }
+        if (core.status.hero.items[itemCls][itemId]==0)
+            delete core.status.hero.items[itemCls][itemId];
     }
     return;
 }
@@ -1958,18 +2015,60 @@ core.prototype.canUseItem = function (itemId) {
     if (itemId == 'fly') return core.status.hero.flyRange.indexOf(core.status.floorId)>=0;
     if (itemId == 'pickaxe') {
         // 破墙镐
-
+        var ids = [];
+        for (var i in core.status.thisMap.blocks) {
+            var block = core.status.thisMap.blocks[i];
+            if (core.isset(block.event) && block.event.id == 'yellowWall' && Math.abs(block.x-core.status.hero.loc.x)+Math.abs(block.y-core.status.hero.loc.y)<=1) {
+                ids.push(i);
+            }
+        }
+        if (ids.length>0) {
+            core.status.event.data = ids;
+            return true;
+        }
         return false;
     }
     if (itemId == 'bomb') {
         // 炸弹
-
+        var ids = [];
+        for (var i in core.status.thisMap.blocks) {
+            var block = core.status.thisMap.blocks[i];
+            if (core.isset(block.event) && block.event.cls == 'enemys' && Math.abs(block.x-core.status.hero.loc.x)+Math.abs(block.y-core.status.hero.loc.y)<=1) {
+                var enemy = core.material.enemys[block.event.id];
+                if (core.isset(enemy.bomb) && !enemy.bomb) continue;
+                ids.push(i);
+            }
+        }
+        if (ids.length>0) {
+            core.status.event.data = ids;
+            return true;
+        }
+        return false;
+    }
+    if (itemId == 'earthquake') {
+        var ids = []
+        for (var i in core.status.thisMap.blocks) {
+            var block = core.status.thisMap.blocks[i];
+            if (core.isset(block.event) && (block.event.id == 'yellowWall' || block.event.id == 'blueWall' || block.event.id == 'whiteWall'))
+                ids.push(i);
+        }
+        if (ids.length>0) {
+            core.status.event.data = ids;
+            return true;
+        }
         return false;
     }
     if (itemId == 'centerFly') {
         // 中心对称
-
-        return false;
+        var toX = 12 - core.getHeroLoc('x'), toY = 12-core.getHeroLoc('y');
+        var blocks = core.status.thisMap.blocks;
+        for (var s = 0; s < blocks.length; s++) {
+            if (blocks[s].x == toX && blocks[s].y == toY) {
+                return false;
+            }
+        }
+        core.status.event.data = {'x': toX, 'y': toY};
+        return true;
     }
     return false;
 }
@@ -2009,20 +2108,25 @@ core.prototype.getItemEffect = function (itemId, itemNum) {
 
     // 消耗品
     if (itemCls === 'items') {
-        if (itemId === 'redJewel') core.status.hero.atk += 1 + hard;
-        if (itemId === 'blueJewel') core.status.hero.def += 1 + hard;
+        if (itemId === 'redJewel') core.status.hero.atk += 3;
+        if (itemId === 'blueJewel') core.status.hero.def += 3;
         if (itemId === 'greenJewel') core.status.hero.mdef += 2 + 3 * hard;
         // if (itemId == 'yellowJewel') core.status.hero.atk+=1+hard;
-        if (itemId === 'redPotion') core.status.hero.hp += 100;
-        if (itemId === 'bluePotion') core.status.hero.hp += 250;
+        if (itemId === 'redPotion') core.status.hero.hp += 200;
+        if (itemId === 'bluePotion') core.status.hero.hp += 500;
         if (itemId === 'yellowPotion') core.status.hero.hp += 500;
         if (itemId === 'greenPotion') core.status.hero.hp += 800;
         if (itemId === 'sword1') core.status.hero.atk += 10;
-        if (itemId === 'sword2') core.status.hero.atk += 20;
-        if (itemId === 'sword5') core.status.hero.atk += 40;
+        if (itemId === 'sword2') core.status.hero.atk += 100;
+        if (itemId === 'sword5') core.status.hero.atk += 1000;
         if (itemId === 'shield1') core.status.hero.def += 10;
-        if (itemId === 'shield2') core.status.hero.def += 20;
-        if (itemId === 'shield5') core.status.hero.def += 40;
+        if (itemId === 'shield2') core.status.hero.def += 100;
+        if (itemId === 'shield5') core.status.hero.def += 1000;
+        if (itemId === 'bigKey') {
+            core.status.hero.items.keys.yellowKey++;
+            core.status.hero.items.keys.blueKey++;
+            core.status.hero.items.keys.redKey++;
+        }
     }
     else {
         core.addItem(itemId, itemNum);
@@ -2033,20 +2137,21 @@ core.prototype.getItemEffectTip = function (itemId) {
     var currfloor = parseInt(core.status.thisMap.name);
     var hard = parseInt((currfloor + 4) / 5);
 
-    if (itemId === 'redJewel') return "攻击+" + (1 + hard);
-    if (itemId === 'blueJewel') return "防御+" + (1 + hard);
-    if (itemId === 'greenJewel') return "魔防+" + (2 + 3 * hard);
+    if (itemId === 'redJewel') return "攻击+3";
+    if (itemId === 'blueJewel') return "防御+3";
+    if (itemId === 'greenJewel') return "魔防+3";
     // if (itemId == 'yellowJewel') core.status.hero.atk+=1+hard;
-    if (itemId === 'redPotion') return "生命+100";
-    if (itemId === 'bluePotion') return "生命+250";
+    if (itemId === 'redPotion') return "生命+200";
+    if (itemId === 'bluePotion') return "生命+500";
     if (itemId === 'yellowPotion') return "生命+500";
     if (itemId === 'greenPotion') return "生命+800";
     if (itemId === 'sword1') return "攻击+10";
-    if (itemId === 'sword2') return "攻击+20";
-    if (itemId === 'sword5') return "攻击+40";
+    if (itemId === 'sword2') return "攻击+100";
+    if (itemId === 'sword5') return "攻击+1000";
     if (itemId === 'shield1') return "防御+10";
-    if (itemId === 'shield2') return "防御+20";
-    if (itemId === 'shield5') return "防御+40";
+    if (itemId === 'shield2') return "防御+100";
+    if (itemId === 'shield5') return "防御+1000";
+    if (itemId === 'bigKey') return "全钥匙+1";
 
     return "";
 }
@@ -2373,10 +2478,11 @@ core.prototype.upload = function (delay) {
 // 作弊
 core.prototype.cheat = function() {
     core.setStatus('hp', 10000);
-    core.setStatus('atk', 1000);
-    core.setStatus('def', 1000);
-    core.setStatus('mdef', 1000);
-    core.setStatus('money', 1000);
+    core.setStatus('atk', 10000);
+    core.setStatus('def', 10000);
+    core.setStatus('mdef', 10000);
+    core.setStatus('money', 10000);
+    core.setStatus('experience', 10000);
     core.setItem('yellowKey', 50);
     core.setItem('blueKey', 50);
     core.setItem('redKey', 50);
@@ -2654,14 +2760,19 @@ core.prototype.openShop = function (id) {
 
     // 对话
     core.canvas.ui.textAlign = "left";
+    if (need<0) need="若干";
+    var use = shop.use=='experience'?"经验":"金币";
     core.fillText('ui', "勇敢的武士啊，给我" + need, left + 60, top + 65, '#FFFFFF', 'bold 14px Verdana');
-    core.fillText('ui', "金币你就可以：", left + 60, top + 83);
+    core.fillText('ui', use + "你就可以：", left + 60, top + 83);
 
     // 选项
     core.canvas.ui.textAlign = "center";
     for (var i = 0; i < shop.choices.length; i++) {
         var choice = shop.choices[i];
-        core.fillText('ui', choice.text, 208, top + 120 + 32 * i, "#FFFFFF", "bold 17px Verdana");
+        var text = choice.text;
+        if (core.isset(choice.need))
+            text += "（"+eval(choice.need)+use+"）"
+        core.fillText('ui', text, 208, top + 120 + 32 * i, "#FFFFFF", "bold 17px Verdana");
     }
     core.fillText('ui', "退出商店", 208, top + 248);
 
@@ -2696,7 +2807,7 @@ core.prototype.getCurrentEnemys = function () {
 
             enemys.push({
                 'id': monsterId, 'name': monster.name, 'hp': monster.hp, 'atk': monster.atk, 'def': mon_def,
-                'money': monster.money, 'special': core.enemys.getSpecialText(monsterId),
+                'money': monster.money, 'experience': monster.experience, 'special': core.enemys.getSpecialText(monsterId),
                 'damage': core.getDamage(monsterId), 'critical': core.getCritical(monsterId),
                 'criticalDamage': core.getCriticalDamage(monsterId), 'defDamage': core.getDefDamage(monsterId)
             });
@@ -2778,14 +2889,24 @@ core.prototype.drawEnemyBook = function (page) {
         core.fillText('ui', '金币', 165, 62 * i + 50, '#DDDDDD', '13px Verdana');
         core.fillText('ui', enemy.money, 195, 62 * i + 50, '#DDDDDD', 'bold 13px Verdana');
 
+        var damage_offset = 326;
+        if (core.firstData.enableExperience) {
+            core.canvas.ui.textAlign = "left";
+            core.fillText('ui', '经验', 255, 62 * i + 50, '#DDDDDD', '13px Verdana');
+            core.fillText('ui', enemy.experience, 285, 62 * i + 50, '#DDDDDD', 'bold 13px Verdana');
+            damage_offset = 353;
+        }
+
+        core.canvas.ui.textAlign = "center";
         var damage = enemy.damage;
         var color = '#FFFF00';
         if (damage >= core.status.hero.hp) color = '#FF0000';
         if (damage == 0) color = '#00FF00';
-        if (damage == 999999999) damage = '无法战斗';
+        if (damage >= 999999999) damage = '无法战斗';
         var length = core.canvas.ui.measureText(damage).width;
-        core.fillText('ui', damage, 326 - length / 2, 62 * i + 50, color, 'bold 13px Verdana');
+        core.fillText('ui', damage, damage_offset, 62 * i + 50, color, 'bold 13px Verdana');
 
+        core.canvas.ui.textAlign = "left";
         // 属性
         if (enemy.special != '') {
             core.setFont('data', 'bold 12px Verdana');
@@ -3037,7 +3158,7 @@ core.prototype.getStatus = function (statusName) {
 
 core.prototype.updateStatusBar = function () {
     // core.statusBar.floor.innerHTML = core.maps.maps[core.status.floorId].name;
-    var statusList = ['hp', 'atk', 'def', 'mdef', 'money'];
+    var statusList = ['hp', 'atk', 'def', /*'mdef',*/ 'money', 'experience'];
     statusList.forEach(function (item) {
         core.statusBar[item].innerHTML = core.getStatus(item);
     });
@@ -3276,8 +3397,9 @@ core.prototype.resize = function(clientWidth, clientHeight) {
                     'hp': {'top': icon_firstline, 'left': 90 * scale},
                     'atk': {'top': icon_firstline, 'left': 210 * scale},
                     'def': {'top': icon_firstline, 'left': 316 * scale},
-                    'mdef': {'top': icon_secondline, 'left': 8 * scale},
-                    'money': {'top': icon_secondline, 'left': 138 * scale},
+                    'mdef': {'top': 0, 'left': 0},
+                    'money': {'top': icon_secondline, 'left': 8 * scale},
+                    'experience': {'top': icon_secondline, 'left': 138 * scale},
                     'book': {'top': icon_toolline, 'left': 8 * scale},
                     'fly': {'top': icon_toolline, 'left': 8 * scale + icon_toolline_per},
                     'toolbox': {'top': icon_toolline, 'left': 8 * scale + icon_toolline_per * 2},
@@ -3289,8 +3411,9 @@ core.prototype.resize = function(clientWidth, clientHeight) {
                 'hp': {'top': text_firstline, 'left': 130 * scale},
                 'atk': {'top': text_firstline, 'left': 246 * scale},
                 'def': {'top': text_firstline, 'left': 352 * scale},
-                'mdef': {'top': text_secondline, 'left': 48 * scale},
-                'money': {'top': text_secondline, 'left': 178 * scale},
+                'mdef': {'top': 0, 'left': 0},
+                'money': {'top': text_secondline, 'left': 48 * scale},
+                'experience': {'top': text_secondline, 'left': 178 * scale},
                 'yellowKey': {'top': text_secondline, 'left': 268 * scale},
                 'blueKey': {'top': text_secondline, 'left': 308 * scale},
                 'redKey': {'top': text_secondline, 'left': 348 * scale},
@@ -3337,8 +3460,9 @@ core.prototype.resize = function(clientWidth, clientHeight) {
                     'hp': {'top': first_icon_row + per_row, 'left': first_col},
                     'atk': {'top': first_icon_row + per_row * 2, 'left': first_col},
                     'def': {'top': first_icon_row + per_row * 3, 'left': first_col},
-                    'mdef': {'top': first_icon_row + per_row * 4, 'left': first_col},
-                    'money': {'top': first_icon_row + per_row * 5, 'left': first_col},
+                    'mdef': {'top': 0, 'left': 0},
+                    'money': {'top': first_icon_row + per_row * 4, 'left': first_col},
+                    'experience': {'top': first_icon_row + per_row * 5, 'left': first_col},
                     'book': {'top': first_tool_row, 'left': first_col},
                     'fly': {'top': first_tool_row, 'left': second_col},
                     'toolbox': {'top': first_tool_row, 'left': third_col},
@@ -3350,8 +3474,9 @@ core.prototype.resize = function(clientWidth, clientHeight) {
                 'hp': {'top': first_text_row + per_row, 'left': second_col},
                 'atk': {'top': first_text_row + per_row * 2, 'left': second_col},
                 'def': {'top': first_text_row + per_row * 3, 'left': second_col},
-                'mdef': {'top': first_text_row + per_row * 4, 'left': second_col},
-                'money': {'top': first_text_row + per_row * 5, 'left': second_col},
+                'mdef': {'top': 0, 'left': 0},
+                'money': {'top': first_text_row + per_row * 4, 'left': second_col},
+                'experience': {'top': first_text_row + per_row * 5, 'left': second_col},
                 'yellowKey': {'top': first_text_row + per_row * 6, 'left': first_col},
                 'blueKey':{'top': first_text_row + per_row * 6, 'left': second_col},
                 'redKey': {'top': first_text_row + per_row * 6, 'left': third_col},
@@ -3395,8 +3520,9 @@ core.prototype.resize = function(clientWidth, clientHeight) {
                 'hp': {'top': first_icon_row + per_row, 'left': first_col},
                 'atk': {'top': first_icon_row + per_row * 2, 'left': first_col},
                 'def': {'top': first_icon_row + per_row * 3, 'left': first_col},
-                'mdef': {'top': first_icon_row + per_row * 4, 'left': first_col},
-                'money': {'top': first_icon_row + per_row * 5, 'left': first_col},
+                'mdef': {'top': 0, 'left': 0},
+                'money': {'top': first_icon_row + per_row * 4, 'left': first_col},
+                'experience': {'top': first_icon_row + per_row * 5, 'left': first_col},
                 'book': {'top': first_tool_row, 'left': first_col},
                 'fly': {'top': first_tool_row, 'left': second_col},
                 'toolbox': {'top': first_tool_row, 'left': third_col},
@@ -3408,8 +3534,9 @@ core.prototype.resize = function(clientWidth, clientHeight) {
             'hp': {'top': first_text_row + per_row, 'left': second_col},
             'atk': {'top': first_text_row + per_row * 2, 'left': second_col},
             'def': {'top': first_text_row + per_row * 3, 'left': second_col},
-            'mdef': {'top': first_text_row + per_row * 4, 'left': second_col},
-            'money': {'top': first_text_row + per_row * 5, 'left': second_col},
+            'mdef': {'top': 0, 'left': 0},
+            'money': {'top': first_text_row + per_row * 4, 'left': second_col},
+            'experience': {'top': first_text_row + per_row * 5, 'left': second_col},
             'yellowKey': {'top': first_text_row + per_row * 6, 'left': first_col},
             'blueKey':{'top': first_text_row + per_row * 6, 'left': second_col},
             'redKey': {'top': first_text_row + per_row * 6, 'left': third_col},

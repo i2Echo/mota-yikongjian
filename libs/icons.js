@@ -25,12 +25,16 @@ icons.prototype.init = function () {
             'downFloor': {'loc': 6, 'size': 32},
             'upFloor': {'loc': 7, 'size': 32},
             'cavity': {'loc': 8, 'size': 32},
-            'shop1-left': {'loc': 9, 'size': 32},
-            'shop1-right': {'loc': 10, 'size': 32},
-            'yellowDoor': {'loc': 11, 'size': 32},
-            'blueDoor': {'loc': 12, 'size': 32},
-            'redDoor': {'loc': 13, 'size': 32},
-            'specialDoor': {'loc': 14, 'size': 32}
+            'yellowDoor': {'loc': 9, 'size': 32},
+            'blueDoor': {'loc': 10, 'size': 32},
+            'redDoor': {'loc': 11, 'size': 32},
+            'greenDoor': {'loc': 12, 'size': 32},
+            'specialDoor': {'loc': 13, 'size': 32},
+            'steelDoor': {'loc': 14, 'size': 32},
+            'blueShop-left': {'loc': 15, 'size': 32},
+            'blueShop-right': {'loc': 16, 'size': 32},
+            'redShop-left': {'loc': 17, 'size': 32},
+            'redShop-right': {'loc': 18, 'size': 32}
         },
         'animates': {
             'star': {'loc': 0, 'size': 32},
@@ -55,7 +59,8 @@ icons.prototype.init = function () {
             'transparentStar': {'loc': 19, 'size': 32},
             'exclamation': {'loc': 20, 'size': 32},
             'portal': {'loc': 21, 'size': 32},
-            'switch': {'loc': 22, 'size': 32}
+            'switch': {'loc': 22, 'size': 32},
+            'lavaNet': {'loc': 23, 'size': 32}
         },
         'npcs': {
             'man': {'loc': 0, 'size': 32},
@@ -63,6 +68,7 @@ icons.prototype.init = function () {
             'thief': {'loc': 2, 'size': 32},
             'fairy': {'loc': 3, 'size': 32},
             'magician': {'loc': 4, 'size': 32},
+            'womanMagician': {'loc': 5, 'size': 32},
             'wood': {'loc': 8, 'size': 32},
             'blueShop': {'loc': 10, 'size': 32},
             'redShop': {'loc': 9, 'size': 32},
@@ -124,13 +130,19 @@ icons.prototype.init = function () {
             'grayPriest': {'loc': 52, 'size': 32},
             'redSwordsman': {'loc': 53, 'size': 32},
             'whiteGhost': {'loc': 54, 'size': 32},
-            'poisonZombie': {'loc': 55, 'size': 32}
+            'poisonZombie': {'loc': 55, 'size': 32},
+            'magicDragon': {'loc': 56, 'size': 32},
+            'octopus': {'loc': 57, 'size': 32},
+            'fairy': {'loc': 58, 'size': 32},
+            'greenKnight': {'loc': 59, 'size': 32},
         },
         'items': {
             'yellowKey': {'loc': 0, 'size': 32},
             'blueKey': {'loc': 1, 'size': 32},
             'redKey': {'loc': 2, 'size': 32},
             'greenKey': {'loc': 3, 'size': 32},
+            'steelKey': {'loc': 4, 'size': 32},
+            'bigKey': {'loc': 6, 'size': 32},
             'redJewel': {'loc': 16, 'size': 32},
             'blueJewel': {'loc': 17, 'size': 32},
             'greenJewel': {'loc': 18, 'size': 32},
@@ -151,6 +163,7 @@ icons.prototype.init = function () {
             'centerFly': {'loc': 13, 'size': 32},
             'downFly': {'loc': 14, 'size': 32},
             'upFly': {'loc': 15, 'size': 32},
+            'earthquake': {'loc': 8, 'size': 32},
             'sword1': {'loc': 50, 'size': 32},
             'sword2': {'loc': 51, 'size': 32},
             'sword3': {'loc': 52, 'size': 32},
@@ -161,6 +174,7 @@ icons.prototype.init = function () {
             'shield3': {'loc': 57, 'size': 32},
             'shield4': {'loc': 58, 'size': 32},
             'shield5': {'loc': 59, 'size': 32},
+            'superPotion': {'loc': 29, 'size': 32},
         }
     }
 }

@@ -35,6 +35,11 @@ events.prototype.init = function () {
             core.openShop(data.event.shopid);
             if (core.isset(callback))
                 callback();
+        },
+        'passNet': function (data, core, callback) {
+            core.passNet(data.event.id);
+            if (core.isset(callback))
+                callback();
         }
     }
 }

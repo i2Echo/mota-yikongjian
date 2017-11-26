@@ -8,7 +8,7 @@ items.prototype.init = function () {
         'yellowKey': {'cls': 'keys', 'name': '黄钥匙'},
         'blueKey': {'cls': 'keys', 'name': '蓝钥匙'},
         'redKey': {'cls': 'keys', 'name': '红钥匙'},
-        'greenKey': {'cls': 'keys', 'name': '绿钥匙'},
+
         // 宝石、血瓶
         'redJewel': {'cls': 'items', 'name': '红宝石'},
         'blueJewel': {'cls': 'items', 'name': '蓝宝石'},
@@ -28,8 +28,11 @@ items.prototype.init = function () {
         'shield3': {'cls': 'items', 'name': '骑士盾'},
         'shield4': {'cls': 'items', 'name': '圣盾'},
         'shield5': {'cls': 'items', 'name': '神圣盾'},
+        'superPotion': {'cls': 'items', 'name': '圣水'},
+        'bigKey': {'cls': 'items', 'name': '钥匙盒'},
 
         // 物品
+        'greenKey': {'cls': 'tools', 'name': '绿钥匙', 'text': '可以打开一扇绿门'},
         'book': {'cls': 'constants', 'name': '怪物手册', 'text': '可以查看当前楼层各怪物属性。'},
         'fly': {'cls': 'constants', 'name': '楼层传送器', 'text': '可以自由往来去过的楼层。'},
         'coin': {'cls': 'constants', 'name': '幸运金币', 'text': '持有时打败怪物可得双倍金币'},
@@ -37,12 +40,14 @@ items.prototype.init = function () {
         'cross': {'cls': 'constants', 'name': '十字架', 'text': '持有后无视怪物的无敌属性'},
 
         // 道具
-        'pickaxe': {'cls': 'tools', 'name': '破墙镐', 'text': '可以破坏勇士面前的一堵墙。'},
+        'pickaxe': {'cls': 'tools', 'name': '破墙镐', 'text': '可以破坏勇士四周的墙。'},
         'icePickaxe': {'cls': 'tools', 'name': '破冰稿', 'text': '可以破坏勇士面前的一堵冰墙。'},
         'bomb': {'cls': 'tools', 'name': '炸弹', 'text': '可以炸掉勇士四周的怪物。'},
         'centerFly': {'cls': 'tools', 'name': '中心对称飞行器', 'text': '可以飞向当前楼层中心对称的位置。'},
         'upFly': {'cls': 'tools', 'name': '上楼器', 'text': '可以飞往楼上的相同位置。'},
-        'downFly': {'cls': 'tools', 'name': '下楼器', 'text': '可以飞往楼下的相同位置。'}
+        'downFly': {'cls': 'tools', 'name': '下楼器', 'text': '可以飞往楼下的相同位置。'},
+        'earthquake': {'cls': 'tools', 'name': '地震卷轴', 'text': '可以破坏当前层的所有墙'}
+
     }
 }
 
