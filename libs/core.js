@@ -731,8 +731,10 @@ core.prototype.onclick = function (x, y) {
 
     // 纯文本
     if (core.status.event.id == 'text') {
-        core.closePanel(false);
+        // core.closePanel(false);
+        core.drawText();
         return;
+
     }
 
     // NPC
@@ -1294,12 +1296,14 @@ core.prototype.afterBattle = function (enemyId) {
                 && !core.enemyExists(5,6) && !core.enemyExists(7,6) && !core.enemyExists(6,5) && !core.enemyExists(6,7)) {
                 // 触发封印
                 core.status.hero.flags.seal20F = true;
-                core.drawTextBox('啊，我怎么被封印了！\n能量只剩下一成了！', 'fairy');
-                // core.drawTip("触发仙子封印");
                 core.material.enemys.fairy.hp /= 10;
                 core.material.enemys.fairy.atk /= 10;
                 core.material.enemys.fairy.def /= 10;
                 core.updateFg();
+                core.drawText([
+                    {'content': '啊，我怎么被封印了！\n能量只剩下一成了！', 'id': 'fairy'}
+                ]);
+                // core.drawTip("触发仙子封印");
             }
         }
     }
@@ -2338,17 +2342,31 @@ core.prototype.drawTip = function (text, type, itemIcon) {
     }, 30);
 }
 
-core.prototype.drawText = function (content) {
-    core.stopAutomaticRoute();
-    if (!core.status.heroStop) {
+core.prototype.drawText = function (contents, callback) {
+
+    if (core.isset(contents)) {
+        core.status.event.id = 'text';
+        core.status.event.data = {'list': contents, 'callback': callback};
+        core.lockControl();
+
+        // wait the hero to stop
+        core.stopAutomaticRoute();
         setTimeout(function() {
-            core.lose();
+            core.drawText();
         }, 30);
         return;
     }
-    core.status.event.id = 'text';
-    core.lockControl();
-    core.drawTextBox(content);
+
+    if (core.status.event.data.list.length==0) {
+        var callback = core.status.event.data.callback;
+        core.closePanel(false);
+        if (core.isset(callback)) callback();
+        return;
+    }
+
+    var data=core.status.event.data.list.shift();
+    core.drawTextBox(data.content, data.id);
+    // core.drawTextBox(content);
 }
 
 /**
