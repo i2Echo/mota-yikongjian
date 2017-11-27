@@ -2345,6 +2345,19 @@ core.prototype.drawTip = function (text, type, itemIcon) {
 core.prototype.drawText = function (contents, callback) {
 
     if (core.isset(contents)) {
+
+        if (typeof contents == 'string') {
+            contents = [{'content': contents}];
+        }
+        else if (contents instanceof Object && core.isset(contents.content)) {
+            contents = [contents];
+        }
+        else if (!(contents instanceof Array)) {
+            core.drawTip("出错了");
+            console.log(contents);
+            return;
+        }
+
         core.status.event.id = 'text';
         core.status.event.data = {'list': contents, 'callback': callback};
         core.lockControl();

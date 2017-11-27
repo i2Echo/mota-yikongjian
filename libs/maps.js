@@ -348,6 +348,7 @@ maps.prototype.init = function () {
         content['name'] = f;
         content['title'] = '主塔 ' + f + ' 层';
         if (f==21) { // 隐藏层
+            floorId = "MT21"
             content['floorId'] = 'MT17-hidden';
             content['name'] = '17';
             content['title'] = '隐藏层';
@@ -459,7 +460,7 @@ maps.prototype.getBlock = function (f, x, y, id) {
     // 传送门
     if (id==89) {
         var toFloor = 0, toX = 0, toY = 0;
-        if (f == 17) {toFloor = 21; toX = 9; toY = 9;}
+        if (f == 17) {toFloor = "17-hidden"; toX = 9; toY = 9;}
         else if (f == 21) {toFloor = 17; toX = 11; toY = 5;}
         else if (f == 19) {toFloor = 20; toX = 6; toY = 9;}
         tmp.event = {
