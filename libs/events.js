@@ -137,7 +137,7 @@ events.prototype.useItem = function(itemId) {
 }
 
 /****** 打完怪物 ******/
-events.prototype.afterBattle = function(enemyId, callback) {
+events.prototype.afterBattle = function(enemyId) {
     if (core.status.floorId == 'MT14' && !core.enemyExists(5,9) && !core.enemyExists(7,9)) {
         core.openDoor("specialDoor", 6, 8, false);
     }

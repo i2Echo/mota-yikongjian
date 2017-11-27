@@ -420,7 +420,7 @@ core.prototype.keyUp = function(e) {
         if (core.status.event.id == 'text' && (e.keyCode==13 || e.keyCode==32))
             core.drawText();
         if (core.status.event.id == 'npc' && core.isset(core.status.event.data.current)
-            && core.status.event.data.current.type=='text'  && (e.keyCode==13 || e.keyCode==32))
+            && core.status.event.data.current.action=='text'  && (e.keyCode==13 || e.keyCode==32))
             core.npcAction();
 
 	    return;
@@ -2157,12 +2157,12 @@ core.prototype.npcAction = function() {
     var id=core.status.event.data.id, x=core.status.event.data.x, y=core.status.event.data.y;
 
     // 对话
-    if (data.type=='text') {
+    if (data.action=='text') {
         core.drawTextBox(data.content, core.isset(data.isHero)&&data.isHero?'hero':data.id);
         return;
     }
     // 显示选项
-    if (data.type=='choices') {
+    if (data.action=='choices') {
         var npc = core.material.npcs[data.id];
 
         var background = core.canvas.ui.createPattern(core.material.ground, "repeat");
@@ -2210,31 +2210,31 @@ core.prototype.npcAction = function() {
         return;
     }
     // 添加访问次数
-    if (data.type == 'addtimes') {
+    if (data.action == 'addtimes') {
         core.status.npcs[id]++;
         core.npcAction();
         return;
     }
     // 设置访问次数
-    if (data.type == 'settimes') {
+    if (data.action == 'settimes') {
         core.status.npcs[id]=data.times;
         core.npcAction();
         return;
     }
     // 消失
-    if (data.type == 'disappear') {
+    if (data.action == 'disappear') {
         core.removeBlock('event', x, y);
         core.npcAction();
         return;
     }
     // 立刻再次访问
-    if (data.type == 'revisit') {
+    if (data.action == 'revisit') {
         core.closePanel(false);
         core.visitNpc(id, x, y)
         return;
     }
     // 自定义事件
-    if (data.type == 'custom') {
+    if (data.action == 'custom') {
         core.events.npcCustomAction(data);
         return;
     }
