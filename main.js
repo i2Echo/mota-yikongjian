@@ -230,21 +230,14 @@ main.init();
 window.onresize = function () {
     main.core.resize(main.dom.body.clientWidth, main.dom.body.clientHeight);
 }
-/*
+
 main.dom.body.onkeydown = function(e) {
-	if(main.core.status.lockControl) {
-		return;
-	}
 	main.core.keyDown(e);
 }
 
 main.dom.body.onkeyup = function(e) {
-	if(main.core.status.lockControl) {
-		return;
-	}
 	main.core.keyUp(e);
 }
-*/
 
 main.dom.body.onselectstart = function () {
     return false;

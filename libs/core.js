@@ -97,6 +97,9 @@ function core() {
         },
         'openingDoor': null,
 
+        // 键盘事件
+        'keyEvents': {'up': false, 'down': false, 'left': false, 'right': false},
+
         // 动画
         'twoAnimateObjs': [],
         'fourAnimateObjs': [],
@@ -400,49 +403,134 @@ core.prototype.restart = function() {
         core.setHeroMoveTriggerInterval();
     });
 }
-/*
+
 core.prototype.keyDown = function(e) {
-	if(!core.status.played || core.status.keyBoardLock) {
+	if(!core.status.played) {
 		return;
 	}
 	if(core.status.automaticRouting || core.status.automaticRouted) {
 		core.stopAutomaticRoute();
 	}
+	if (core.status.lockControl) {
+        core.status.keyEvents.left = false;
+        core.status.keyEvents.right = false;
+        core.status.keyEvents.up = false;
+        core.status.keyEvents.down = false;
+
+        if (core.status.event.id == 'book') {
+            if (e.keyCode==37) core.drawEnemyBook(core.status.event.data - 1);
+            else if (e.keyCode==39) core.drawEnemyBook(core.status.event.data + 1);
+            return;
+        }
+        if (core.status.event.id == 'fly') {
+            if (e.keyCode==38) core.drawFly(core.status.event.data+1);
+            else if (e.keyCode==40) core.drawFly(core.status.event.data-1);
+            return;
+        }
+        if (core.status.event.id == 'save' || core.status.event.id == 'load') {
+            if (e.keyCode==37) core.drawSLPanel(core.status.event.data-1);
+            else if (e.keyCode==39) core.drawSLPanel(core.status.event.data+1);
+            return;
+        }
+	    return;
+    }
 	switch(e.keyCode) {
 		case 37:
+            core.status.keyEvents.left = true;
 			core.moveHero('left');
 		break;
 		case 38:
-			e.preventDefault();
+            core.status.keyEvents.up = true;
 			core.moveHero('up');
 		break;
 		case 39:
+            core.status.keyEvents.right = true;
 			core.moveHero('right');
 		break;
 		case 40:
-			e.preventDefault();
+            core.status.keyEvents.down = true;
 			core.moveHero('down');
-		break;
-		case 81:
-			core.setAutoHeroMove([
-				{'direction': 'right', 'step': 3},
-				{'direction': 'up', 'step': 1},
-				{'direction': 'down', 'step': 1},
-				{'direction': 'left', 'step': 2},
-				{'direction': 'up', 'step': 2}
-			]);
 		break;
 	}
 }
 
 core.prototype.keyUp = function(e) {
-	if(!core.status.played || e.keyCode == 81) {
+	if(!core.status.played) {
 		return;
 	}
-	core.unLockKeyBoard();
-	core.stopHero();
+
+	if (core.status.lockControl) {
+        if (core.status.event.id == 'book' && (e.keyCode==27 || e.keyCode==88))
+            core.closePanel(true);
+	    if (core.status.event.id == 'fly' && (e.keyCode==71 || e.keyCode==27))
+	        core.closePanel();
+	    if (core.status.event.id == 'fly' && e.keyCode==13) {
+            var index=core.status.hero.flyRange.indexOf(core.status.floorId);
+            var stair=core.status.event.data<index?"upFloor":"downFloor";
+            var floorId=core.status.event.data;
+            core.closePanel();
+            core.changeFloor(core.status.hero.flyRange[floorId], stair);
+        }
+	    if (core.status.event.id == 'save' && (e.keyCode==83 || e.keyCode==27))
+	        core.closePanel();
+        if (core.status.event.id == 'load' && (e.keyCode==76 || e.keyCode==27))
+            core.closePanel();
+	    if ((core.status.event.id == 'shop' || core.status.event.id == 'settings'
+            || core.status.event.id == 'selectShop') && e.keyCode==27)
+	        core.closePanel();
+        if (core.status.event.id == 'toolbox' && (e.keyCode==84 || e.keyCode==27))
+            core.closePanel();
+        if (core.status.event.id == 'text' && (e.keyCode==13 || e.keyCode==32))
+            core.drawText();
+        if (core.status.event.id == 'npc' && core.isset(core.status.event.data.current)
+            && core.status.event.data.current.type=='text'  && (e.keyCode==13 || e.keyCode==32))
+            core.npcAction();
+
+	    return;
+    }
+
+    switch (e.keyCode) {
+        case 27: // ESC
+            core.openSettings(true);
+            break;
+        case 71: // G
+            core.useFly(true);
+            break;
+        case 88: // X
+            core.openBook(true);
+            break;
+        case 83: // S
+            core.save(true);
+            break;
+        case 76: // L
+            core.load(true);
+            break;
+        case 84: // T
+            core.openToolbox(true);
+            break;
+        case 90: // Z
+            core.turnHero();
+            break;
+        case 37:
+            core.status.keyEvents.left = false;
+            break;
+        case 38:
+            core.status.keyEvents.up = false;
+            break;
+        case 39:
+            core.status.keyEvents.right = false;
+            break;
+        case 40:
+            core.status.keyEvents.down = false;
+            break;
+    }
+    if (!(core.status.keyEvents.left || core.status.keyEvents.right
+        || core.status.keyEvents.up || core.status.keyEvents.down))
+        core.stopHero();
+
+	// core.unLockKeyBoard();
 }
-*/
+
 
 core.prototype.onclick = function (x, y) {
     // console.log("Click: (" + x + "," + y + ")");
@@ -736,7 +824,6 @@ core.prototype.onclick = function (x, y) {
         // core.closePanel(false);
         core.drawText();
         return;
-
     }
 
     // NPC
@@ -835,13 +922,7 @@ core.prototype.setAutomaticRoute = function (destX, destY) {
         return;
     }
     if (destX == core.status.hero.loc.x && destY == core.status.hero.loc.y) {
-        if (core.status.hero.loc.direction == 'up') core.status.hero.loc.direction = 'right';
-        else if (core.status.hero.loc.direction == 'right') core.status.hero.loc.direction = 'down';
-        else if (core.status.hero.loc.direction == 'down') core.status.hero.loc.direction = 'left';
-        else if (core.status.hero.loc.direction == 'left') core.status.hero.loc.direction = 'up';
-        core.drawHero(core.status.hero.loc.direction, core.status.hero.loc.x, core.status.hero.loc.y, 'stop', 0, 0);
-        core.status.automaticRoutingTemp = {'destX': 0, 'destY': 0, 'moveStep': []};
-        core.canvas.ui.clearRect(0, 0, 416, 416);
+        core.turnHero();
         return;
     }
     // 直接移动
@@ -1193,6 +1274,16 @@ core.prototype.setHeroMoveTriggerInterval = function () {
             });
         }
     }, 50);
+}
+
+core.prototype.turnHero = function() {
+    if (core.status.hero.loc.direction == 'up') core.status.hero.loc.direction = 'right';
+    else if (core.status.hero.loc.direction == 'right') core.status.hero.loc.direction = 'down';
+    else if (core.status.hero.loc.direction == 'down') core.status.hero.loc.direction = 'left';
+    else if (core.status.hero.loc.direction == 'left') core.status.hero.loc.direction = 'up';
+    core.drawHero(core.status.hero.loc.direction, core.status.hero.loc.x, core.status.hero.loc.y, 'stop', 0, 0);
+    core.status.automaticRoutingTemp = {'destX': 0, 'destY': 0, 'moveStep': []};
+    core.canvas.ui.clearRect(0, 0, 416, 416);
 }
 
 core.prototype.moveHero = function (direction) {
@@ -2140,7 +2231,7 @@ core.prototype.canUseItem = function (itemId) {
     }
     if (itemId == 'upFly') {
         // 上楼器
-        if (core.status.floorId == 'MT20' || core.status.floorId == 'MT17-hidden') // 禁用条件
+        if (core.status.floorId == 'MT20' || core.status.floorId == 'MT21') // 禁用条件
             return false;
         var toId = null, found = false; // 上楼后的楼层ID
         for (var id in core.status.maps) {
@@ -2162,7 +2253,7 @@ core.prototype.canUseItem = function (itemId) {
     }
     if (itemId == 'downFly') {
         // 下楼器
-        if (core.status.floorId == 'MT0' || core.status.floorId == 'MT17-hidden')
+        if (core.status.floorId == 'MT0' || core.status.floorId == 'MT21')
             return false;
         var toId = null;
         for (var id in core.status.maps) {
