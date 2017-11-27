@@ -567,10 +567,11 @@ core.prototype.onclick = function (x, y) {
                 }
 
                 eval(use+'-='+need);
-                core.npcEffect(choice.effect);
-
                 core.setStatus('money', money);
                 core.setStatus('experience', experience);
+                core.updateStatusBar();
+
+                core.npcEffect(choice.effect);
 
                 core.status.event.data.times++;
                 core.openShop(core.status.event.data.id);
@@ -595,7 +596,7 @@ core.prototype.onclick = function (x, y) {
             var exitIndex = 6 + parseInt((keys.length + 1) / 2);
 
             if (y >= topIndex && y - topIndex < keys.length) {
-                if (core.status.floorId == 'MT17-hidden') {
+                if (core.status.floorId == 'MT20') {
                     core.drawText('当前不能使用快捷商店。');
                     return;
                 }
@@ -1133,7 +1134,7 @@ core.prototype.setHeroMoveInterval = function (direction, x, y, callback) {
                 }
                 break;
         }
-    }, 16.7);
+    }, 10);
 }
 
 core.prototype.setHeroMoveTriggerInterval = function () {
@@ -1293,7 +1294,8 @@ core.prototype.afterBattle = function (enemyId) {
                 && !core.enemyExists(5,6) && !core.enemyExists(7,6) && !core.enemyExists(6,5) && !core.enemyExists(6,7)) {
                 // 触发封印
                 core.status.hero.flags.seal20F = true;
-                core.drawTip("触发仙子封印");
+                core.drawTextBox('啊，我怎么被封印了！\n能量只剩下一成了！', 'fairy');
+                // core.drawTip("触发仙子封印");
                 core.material.enemys.fairy.hp /= 10;
                 core.material.enemys.fairy.atk /= 10;
                 core.material.enemys.fairy.def /= 10;
@@ -1310,9 +1312,10 @@ core.prototype.getDamage = function (monsterId) {
     var damage = core.calDamage(hero_atk, hero_def, hero_mdef, mon_hp, mon_atk, mon_def, mon_special);
     var extra_damage = 0;
     if (monster.special == 11) { // 吸血
-        extra_damage = parseInt(core.status.hero.hp * monster.value);
+        extra_damage = core.status.hero.hp * monster.value;
         if (core.status.hero.flags.hasShield5) // 存在神圣盾
             extra_damage /= 2;
+        extra_damage = parseInt(extra_damage);
     }
     return damage + extra_damage;
 }
@@ -2491,6 +2494,12 @@ core.prototype.npcEffect = function (effect, npc) {
 }
 
 core.prototype.drawTextBox = function(content, id) {
+
+    core.lockControl();
+
+    if (core.status.event.id == null)
+        core.status.event.id = 'text';
+
     var background = core.canvas.ui.createPattern(core.material.ground, "repeat");
     var contents = content.split('\n');
 
