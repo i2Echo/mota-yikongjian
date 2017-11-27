@@ -514,8 +514,10 @@ core.prototype.onclick = function (x, y) {
     }
 
     // 设置
-    if (core.status.event.id == 'settings')
+    if (core.status.event.id == 'settings') {
         if (x >= 5 && x <= 7) core.events.selectSettings(y);
+        return;
+    }
 
     // 商店
     if (core.status.event.id == 'shop') {
@@ -567,14 +569,13 @@ core.prototype.onclick = function (x, y) {
     // 快捷商店
     if (core.status.event.id == 'selectShop') {
         if (x >= 5 && x <= 7) {
-
             var shopList = core.status.shops, keys = Object.keys(shopList);
             var topIndex = 6 - parseInt((keys.length + 1) / 2);
             var exitIndex = 6 + parseInt((keys.length + 1) / 2);
 
             if (y >= topIndex && y - topIndex < keys.length) {
                 var reason = core.events.canUseQuickShop(y-topIndex);
-                if (!core.isset(reason)) {
+                if (core.isset(reason)) {
                     core.drawText(reason);
                     return;
                 }

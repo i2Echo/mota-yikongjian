@@ -65,7 +65,7 @@ events.prototype.selectSettings = function (y) {
         core.openSettings(false);
     }
     if (y == 4) core.selectShop();
-    if (y == 5) core.events.decreaseHard();
+    if (y == 5) this.decreaseHard();
     if (y == 6) {
         core.showConfirmBox('你确定要清空所有存档吗？', function(){
             core.closePanel();
