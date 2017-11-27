@@ -121,7 +121,7 @@ core.prototype.init = function (dom, statusBar, canvas, images, sounds, firstDat
     core.material.items = core.items.getItems();
     // core.status.maps = core.maps.getMaps();
     core.initStatus.maps = core.maps.getMaps();
-    core.material.enemys = core.enemys.getEnemys();
+    core.material.enemys = core.clone(core.enemys.getEnemys());
     core.material.icons = core.icons.getIcons();
     core.material.events = core.events.getEvents();
     core.material.npcs = core.npcs.getNpcs();
@@ -353,6 +353,8 @@ core.prototype.resetStatus = function(hero, hard, floorId, maps) {
     // 初始化maps
     core.status.floorId = floorId;
     core.status.maps = core.clone(maps);
+    // 初始化怪物
+    core.material.enemys = core.clone(core.enemys.getEnemys());
     // 初始化人物属性
     core.status.hero = core.clone(hero);
     core.status.hard = hard;
@@ -2937,6 +2939,14 @@ core.prototype.loadData = function (data, callback) {
     if (totaltime>core.status.hero.time.totaltime)
         core.status.hero.time.totaltime=totaltime;
     core.status.hero.time.lasttime = lasttime;
+
+    // 重新封印
+    if (core.status.hero.flags.seal20F) {
+        var fairy = core.material.enemys.fairy;
+        fairy.hp/=10;
+        fairy.atk/=10;
+        fairy.def/=10;
+    }
 
     core.changeFloor(data.floorId, null, data.hero.loc, function() {
         core.setHeroMoveTriggerInterval();
