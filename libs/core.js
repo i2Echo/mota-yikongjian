@@ -550,11 +550,7 @@ core.prototype.onclick = function (x, y) {
             if (y >= 5 && y <= 8) {
                 if (y >= 5 + core.status.event.data.choices.length) return;
 
-                var hp = core.getStatus('hp'), atk = core.getStatus('atk'),
-                    def = core.getStatus('def'), mdef = core.getStatus('mdef'),
-                    money = core.getStatus('money'), experience = core.getStatus('experience'),
-                    yellowKey = core.itemCount('yellowKey'),
-                    blueKey = core.itemCount('blueKey'), redKey = core.itemCount('redKey');
+                var money = core.getStatus('money'), experience = core.getStatus('experience');
 
                 var shop = core.status.event.data;
                 var times = shop.times, need = eval(shop.need);
@@ -571,17 +567,11 @@ core.prototype.onclick = function (x, y) {
                 }
 
                 eval(use+'-='+need);
-                eval(choice.effect);
-                core.setStatus('hp', hp);
-                core.setStatus('atk', atk);
-                core.setStatus('def', def);
-                core.setStatus('mdef', mdef);
+                core.npcEffect(choice.effect);
+
                 core.setStatus('money', money);
                 core.setStatus('experience', experience);
-                core.setItem('yellowKey', yellowKey);
-                core.setItem('blueKey', blueKey);
-                core.setItem('redKey', redKey);
-                core.updateStatusBar();
+
                 core.status.event.data.times++;
                 core.openShop(core.status.event.data.id);
                 return;
@@ -605,9 +595,19 @@ core.prototype.onclick = function (x, y) {
             var exitIndex = 6 + parseInt((keys.length + 1) / 2);
 
             if (y >= topIndex && y - topIndex < keys.length) {
-                // core.openShop(keys[y-topIndex]);
-                if (!shopList[keys[y - topIndex]].visited) {
-                    core.drawTip('该商店尚未开启');
+                if (core.status.floorId == 'MT17-hidden') {
+                    core.drawText('当前不能使用快捷商店。');
+                    return;
+                }
+                if (core.status.hero.flags.passLava) {
+                    core.drawText('由于你刚刚经过岩浆，此时不得使用快捷商店。\n切换楼层后恢复。');
+                    return;
+                }
+                var shop=shopList[keys[y - topIndex]];
+                if (!shop.visited) {
+                    if (shop.times==0)
+                        core.drawTip('该商店尚未开启');
+                    else core.drawTip('该商店已失效');
                     return;
                 }
                 core.openShop(keys[y - topIndex]);
@@ -721,6 +721,19 @@ core.prototype.onclick = function (x, y) {
         return;
     }
 
+    // 输掉
+    if (core.status.event.id == 'lose') {
+        core.closePanel(false);
+        core.restart();
+        return;
+    }
+
+    // 纯文本
+    if (core.status.event.id == 'text') {
+        core.closePanel(false);
+        return;
+    }
+
     // NPC
     if (core.status.event.id == 'npc') {
 
@@ -731,6 +744,52 @@ core.prototype.onclick = function (x, y) {
             if (data.type == 'text') {
                 core.npcAction();
                 return;
+            }
+            if (data.type == 'choices') {
+                if (x >= 5 && x <= 7) {
+                    if (y >= 5 && y <= 8) {
+                        if (y >= 5 + data.choices.length) return;
+
+                        var choice = data.choices[y - 5];
+                        if (core.isset(choice.need)) {
+                            var able = true;
+                            choice.need.split(';').forEach(function (e) {
+                                var ones = e.split(',');
+                                var type = ones[0], key = ones[1], value = ones[2];
+                                if (type == 'status') {
+                                    if (core.getStatus(key)<parseInt(value)) able=false;
+                                }
+                                else if (type == 'item') {
+                                    if (core.itemCount(key)<parseInt(value)) able=false;
+                                }
+                            });
+                            if (!able) {
+                                core.drawTip("无法选择此项");
+                                return;
+                            }
+                            choice.need.split(';').forEach(function (e) {
+                                var ones = e.split(',');
+                                var type = ones[0], key = ones[1], value = ones[2];
+                                if (type == 'status') {
+                                    core.setStatus(key, core.getStatus(key)-parseInt(value));
+                                }
+                                else if (type == 'item') {
+                                    core.setItem(key, core.itemCount(key)-parseInt(value));
+                                }
+                            });
+                        }
+                        core.npcEffect(choice.effect);
+                        core.npcAction();
+                        return;
+                    }
+
+                    // 退出商店
+                    if (y == 9 && !(core.isset(data.cancel) && !data.cancel)) {
+                        core.status.event.data = null;
+                        core.closePanel();
+                        return;
+                    }
+                }
             }
 
         }
@@ -1173,7 +1232,7 @@ core.prototype.openDoor = function (id, x, y, needKey) {
     if (needKey) {
         var key = id.replace("Door", "Key");
         if (!core.useKey(key)) {
-            if (key == "yellowKey" || key == "blueKey" || key == "redKey")
+            if (key != "specialKey")
                 core.drawTip("你没有" + core.material.items[key].name + "！", "normal");
             else core.drawTip("无法开启此门。");
             return;
@@ -1218,53 +1277,30 @@ core.prototype.battle = function (id, x, y) {
     core.drawTip(hint);
 
     // 打完怪物，触发事件
+    core.afterBattle(id);
 
-    if (id == 'skeleton' && core.status.floorId == 'MT3' && !core.enemyExists(9, 4) && !core.enemyExists(11, 4)) {
-        core.openDoor('specialDoor', 10, 3, false);
-    }
-    if (id == 'skeletonSoilder' && core.status.floorId == 'MT3' && !core.enemyExists(9, 9) && !core.enemyExists(11, 9)) {
-        core.openDoor('specialDoor', 10, 8, false);
-    }
-    if (id == 'skeletonCaptain' && core.status.floorId == 'MT5') {
-        core.openDoor('specialDoor', 6, 3, false);
-        core.upload();
-    }
-    if (id=='zombieKnight' && core.status.floorId=='MT8' && !core.enemyExists(9, 7) && !core.enemyExists(11, 7)) {
-        core.openDoor('specialDoor', 10, 8, false);
-    }
-    if (id=='rock' && core.status.floorId=='MT9' && !core.enemyExists(3, 1) && !core.enemyExists(3, 3)) {
-        core.openDoor('specialDoor', 2, 2, false);
-    }
-    if (id=='vampire' && core.status.floorId=='MT10') {
-        core.openDoor('specialDoor', 6, 3, false);
-        core.upload();
-    }
-    if (id=='blueGuard' && core.status.floorId=='MT12' && !core.enemyExists(9, 8) && !core.enemyExists(11, 8)) {
-        core.openDoor('specialDoor', 10, 7, false);
-    }
-    if (id=='redBat' && core.status.floorId=='MT12' && !core.enemyExists(9, 6) && !core.enemyExists(11, 6)) {
-        core.openDoor('specialDoor', 10, 5, false);
-    }
-    if (id=='ghostSkeleton' && core.status.floorId=='MT12' && !core.enemyExists(9, 4) && !core.enemyExists(11, 4)) {
-        core.openDoor('specialDoor', 10, 3, false);
-    }
-    if ((id=='soldier' || id=='redKnight') && core.status.floorId=='MT13' && !core.enemyExists(7, 1) && !core.enemyExists(7, 3)) {
-        core.openDoor('specialDoor', 8, 2, false);
-    }
-    if (id=='redKnight' && core.status.floorId=='MT14' && !core.enemyExists(9, 4) && !core.enemyExists(9, 6)) {
-        core.openDoor('specialDoor', 8, 5, false);
-    }
-    if (id=='yellowKnight' && core.status.floorId=='MT15') {
-        core.openDoor('specialDoor', 6, 9, false);
-        core.upload();
-    }
-    if (id=='blueKnight' && core.status.floorId=='MT17' && !core.enemyExists(5, 7) && !core.enemyExists(7, 7)) {
-        core.openDoor('specialDoor', 6, 8, false);
-    }
-    if (id=='blackKing' && core.status.floorId=='MT20') {
-        core.win();
-    }
+}
 
+core.prototype.afterBattle = function (enemyId) {
+    if (core.status.floorId == 'MT14' && !core.enemyExists(5,9) && !core.enemyExists(7,9)) {
+        core.openDoor("specialDoor", 6, 8, false);
+    }
+    if (core.status.floorId == 'MT20') {
+        // 检查封印
+        if (!core.status.hero.flags.seal20F) {
+            // 四个角都存在，四边都不存在
+            if (core.enemyExists(5,5) && core.enemyExists(5,7) && core.enemyExists(7,7) && core.enemyExists(7,5)
+                && !core.enemyExists(5,6) && !core.enemyExists(7,6) && !core.enemyExists(6,5) && !core.enemyExists(6,7)) {
+                // 触发封印
+                core.status.hero.flags.seal20F = true;
+                core.drawTip("触发仙子封印");
+                core.material.enemys.fairy.hp /= 10;
+                core.material.enemys.fairy.atk /= 10;
+                core.material.enemys.fairy.def /= 10;
+                core.updateFg();
+            }
+        }
+    }
 }
 
 core.prototype.getDamage = function (monsterId) {
@@ -1272,9 +1308,13 @@ core.prototype.getDamage = function (monsterId) {
     var hero_atk = core.status.hero.atk, hero_def = core.status.hero.def, hero_mdef = core.status.hero.mdef;
     var mon_hp = monster.hp, mon_atk = monster.atk, mon_def = monster.def, mon_special = monster.special;
     var damage = core.calDamage(hero_atk, hero_def, hero_mdef, mon_hp, mon_atk, mon_def, mon_special);
-    if (monster.special == 11) // 吸血
-        damage += parseInt(core.status.hero.hp * monster.value);
-    return damage;
+    var extra_damage = 0;
+    if (monster.special == 11) { // 吸血
+        extra_damage = parseInt(core.status.hero.hp * monster.value);
+        if (core.status.hero.flags.hasShield5) // 存在神圣盾
+            extra_damage /= 2;
+    }
+    return damage + extra_damage;
 }
 
 core.prototype.getCritical = function (monsterId) {
@@ -1393,6 +1433,10 @@ core.prototype.changeFloor = function (floorId, stair, heroLoc, callback) {
                 core.setHeroLoc('y', heroLoc.y);
                 core.drawHero(core.getHeroLoc('direction'), core.getHeroLoc('x'), core.getHeroLoc('y'), 'stop');
                 core.updateFg();
+
+                // 上下楼切换
+                core.status.hero.flags.passLava = false;
+
                 if (core.isset(callback)) callback();
             });
         });
@@ -1907,7 +1951,7 @@ core.prototype.updateFg = function () {
             else color = '#FF0000';
 
             if (damage >= 999999999) damage = "???";
-            else if (damage > 100000) damage = (damage / 100000).toFixed(1) + "w";
+            else if (damage > 100000) damage = (damage / 10000).toFixed(1) + "w";
 
             core.setFillStyle('fg', '#000000');
             core.canvas.fg.fillText(damage, 32 * x + 2, 32 * (y + 1) - 2);
@@ -1929,10 +1973,16 @@ core.prototype.updateFg = function () {
 core.prototype.passNet = function(id) {
     if (id=='lavaNet') {
         core.status.hero.hp -= 100;
+        if (core.status.hero.hp<=0) {
+            core.status.hero.hp=0;
+            core.updateStatusBar();
+            core.lose();
+            return;
+        }
+        core.status.hero.flags.passLava = true;
         core.updateStatusBar();
         core.drawTip('经过熔岩，生命-100');
     }
-
 }
 
 /**
@@ -1989,6 +2039,9 @@ core.prototype.useItem = function (itemId) {
                 core.drawHero(core.getHeroLoc('direction'), core.getHeroLoc('x'), core.getHeroLoc('y'), 'stop');
                 core.updateFg();
                 core.drawTip(core.material.items[itemId].name + "使用成功");
+                if (itemId == 'bomb') {
+                    core.afterBattle();
+                }
             });
         }
         if (itemId == 'centerFly') {
@@ -1998,6 +2051,12 @@ core.prototype.useItem = function (itemId) {
             core.setHeroLoc('y', core.status.event.data.y);
             core.drawHero(core.getHeroLoc('direction'), core.getHeroLoc('x'), core.getHeroLoc('y'), 'stop');
             core.drawTip(core.material.items[itemId].name + "使用成功");
+        }
+        if (itemId == 'upFly' || itemId == 'downFly') {
+            // 上楼器/下楼器
+            core.changeFloor(core.status.event.data.id, null, {'direction': core.status.hero.loc.direction, 'x': core.status.event.data.x, 'y': core.status.event.data.y}, function (){
+                core.drawTip(core.material.items[itemId].name + "使用成功");
+            });
         }
         if (core.status.hero.items[itemCls][itemId]==0)
             delete core.status.hero.items[itemCls][itemId];
@@ -2070,6 +2129,48 @@ core.prototype.canUseItem = function (itemId) {
         core.status.event.data = {'x': toX, 'y': toY};
         return true;
     }
+    if (itemId == 'upFly') {
+        // 上楼器
+        if (core.status.floorId == 'MT20' || core.status.floorId == 'MT17-hidden') // 禁用条件
+            return false;
+        var toId = null, found = false; // 上楼后的楼层ID
+        for (var id in core.status.maps) {
+            if (found) {toId = id; break;}
+            if (id == core.status.floorId) found=true;
+        }
+        if (!found) return false;
+        // 检查是否存在block（不是空地）
+        var toX = core.getHeroLoc('x'), toY = core.getHeroLoc('y');
+        var blocks = core.status.maps[toId].blocks;
+        for (var s = 0; s < blocks.length; s++) {
+            if (blocks[s].x == toX && blocks[s].y == toY) {
+                return false;
+            }
+        }
+        // 可以上楼，记录下位置信息，返回true
+        core.status.event.data = {'id': toId, 'x': toX, 'y': toY};
+        return true;
+    }
+    if (itemId == 'downFly') {
+        // 下楼器
+        if (core.status.floorId == 'MT0' || core.status.floorId == 'MT17-hidden')
+            return false;
+        var toId = null;
+        for (var id in core.status.maps) {
+            if (id == core.status.floorId) break;
+            toId = id;
+        }
+        if (toId == null) return false;
+        var toX = core.getHeroLoc('x'), toY = core.getHeroLoc('y');
+        var blocks = core.status.maps[toId].blocks;
+        for (var s = 0; s < blocks.length; s++) {
+            if (blocks[s].x == toX && blocks[s].y == toY) {
+                return false;
+            }
+        }
+        core.status.event.data = {'id': toId, 'x': toX, 'y': toY};
+        return true;
+    }
     return false;
 }
 
@@ -2121,12 +2222,16 @@ core.prototype.getItemEffect = function (itemId, itemNum) {
         if (itemId === 'sword5') core.status.hero.atk += 1000;
         if (itemId === 'shield1') core.status.hero.def += 10;
         if (itemId === 'shield2') core.status.hero.def += 100;
-        if (itemId === 'shield5') core.status.hero.def += 1000;
+        if (itemId === 'shield5') {
+            core.status.hero.def += 1000;
+            core.status.hero.flags.hasShield5 = true;
+        }
         if (itemId === 'bigKey') {
             core.status.hero.items.keys.yellowKey++;
             core.status.hero.items.keys.blueKey++;
             core.status.hero.items.keys.redKey++;
         }
+        if (itemId == 'superPotion') core.status.hero.hp *= 2;
     }
     else {
         core.addItem(itemId, itemNum);
@@ -2152,6 +2257,7 @@ core.prototype.getItemEffectTip = function (itemId) {
     if (itemId === 'shield2') return "防御+100";
     if (itemId === 'shield5') return "防御+1000";
     if (itemId === 'bigKey') return "全钥匙+1";
+    if (itemId === 'superPotion') return "生命值翻倍";
 
     return "";
 }
@@ -2229,6 +2335,19 @@ core.prototype.drawTip = function (text, type, itemIcon) {
     }, 30);
 }
 
+core.prototype.drawText = function (content) {
+    core.stopAutomaticRoute();
+    if (!core.status.heroStop) {
+        setTimeout(function() {
+            core.lose();
+        }, 30);
+        return;
+    }
+    core.status.event.id = 'text';
+    core.lockControl();
+    core.drawTextBox(content);
+}
+
 /**
  * 物品处理 end
  */
@@ -2236,13 +2355,13 @@ core.prototype.drawTip = function (text, type, itemIcon) {
 /*
  * NPC事件
  */
-core.prototype.visitNpc = function (npcId) {
+core.prototype.visitNpc = function (npcId, x, y) {
     // core.drawTip("NPC对话事件尚未完成");
 
     // 正在移动中...
     if (!core.status.heroStop) {
         setTimeout(function () {
-            core.visitNpc(npcId);
+            core.visitNpc(npcId, x, y);
         }, 30);
         return;
     }
@@ -2254,7 +2373,7 @@ core.prototype.visitNpc = function (npcId) {
     var list = core.npcs.getEffect(npcId, times);
     if (list.length==0) return;
 
-    core.status.event.data = {'id': npcId, 'list': list};
+    core.status.event.data = {'x': x, 'y': y, 'id': npcId, 'list': list};
     core.status.event.id = 'npc';
     core.lockControl();
 
@@ -2272,22 +2391,113 @@ core.prototype.npcAction = function() {
     var data = core.status.event.data.list.shift();
     core.status.event.data.current = data;
 
+    var id=core.status.event.data.id, x=core.status.event.data.x, y=core.status.event.data.y;
+
     // 对话
     if (data.type=='text') {
         core.drawTextBox(data.content, core.isset(data.isHero)&&data.isHero?'hero':data.id);
+        return;
     }
     // TODO 添加其他可能的NPC事件
+    if (data.type=='choices') {
+        var npc = core.material.npcs[data.id];
 
+        var background = core.canvas.ui.createPattern(core.material.ground, "repeat");
+
+        clearInterval(core.interval.tipAnimate);
+        core.clearMap('data', 0, 0, 416, 416);
+        core.setOpacity('data', 1);
+
+        core.clearMap('ui', 0, 0, 416, 416);
+        core.setAlpha('ui', 1);
+        core.setFillStyle('ui', background);
+
+        var left = 97, top = 64, right = 416 - 2 * left, bottom = 416 - 2 * top;
+        core.fillRect('ui', left, top, right, bottom, background);
+        core.strokeRect('ui', left - 1, top - 1, right + 1, bottom + 1, '#FFFFFF', 2);
+
+        // 名称
+        core.canvas.ui.textAlign = "center";
+        core.fillText('ui', npc.name, left + 135, top + 34, '#FFFFFF', 'bold 19px Verdana');
+
+        // 动画
+        core.strokeRect('ui', left + 15 - 1, top + 30 - 1, 34, 34, '#DDDDDD', 2);
+        core.status.boxAnimateObjs = [];
+        core.status.boxAnimateObjs.push({
+            'bgx': left + 15, 'bgy': top + 30, 'bgsize': 32,
+            'image': core.material.images.npcs,
+            'x': left + 15, 'y': top + 30, 'icon': core.material.icons.npcs[npc.icon]
+        });
+        core.setBoxAnimate(core.firstData.animateSpeed);
+
+        // 对话
+        core.canvas.ui.textAlign = "left";
+        var contents = data.hint.split('\n');
+        for (var i=0;i<contents.length;i++) {
+            core.fillText('ui', contents[i], left+60, top+65+18*i, '#FFFFFF', 'bold 14px Verdana');
+        }
+
+        // 选项
+        core.canvas.ui.textAlign = "center";
+        for (var i = 0; i < data.choices.length; i++) {
+            core.fillText('ui', data.choices[i].text, 208, top + 120 + 32 * i, "#FFFFFF", "bold 17px Verdana");
+        }
+        if (!(core.isset(data.cancel) && !data.cancel))
+            core.fillText('ui', "返回", 208, top + 248);
+        return;
+    }
+
+    if (data.type == 'addtimes') {
+        core.status.npcs[id]++;
+        core.npcAction();
+        return;
+    }
+    if (data.type == 'settimes') {
+        core.status.npcs[id]=data.times;
+        core.npcAction();
+        return;
+    }
+    if (data.type == 'disappear') {
+        // NPC消失
+        core.removeBlock('event', x, y);
+        core.npcAction();
+        return;
+    }
+    if (data.type == 'revisit') {
+        core.closePanel(false);
+        core.visitNpc(id, x, y)
+        return;
+    }
+    return;
 }
 
-core.prototype.drawTextBox = function(content, npcId) {
+core.prototype.npcEffect = function (effect, npc) {
+    if (effect == 'custom') {
+        core.drawTip("自定义事件...");
+        return;
+    }
+    effects = effect.split(';');
+    effects.forEach(function (e) {
+        var ones = e.split(',');
+        var type = ones[0], key = ones[1], value = ones[2];
+        if (type == 'status') {
+            core.setStatus(key, core.getStatus(key)+parseInt(value));
+        }
+        else if (type == 'item') {
+            core.setItem(key, core.itemCount(key)+parseInt(value));
+        }
+    });
+    core.updateStatusBar();
+}
+
+core.prototype.drawTextBox = function(content, id) {
     var background = core.canvas.ui.createPattern(core.material.ground, "repeat");
     var contents = content.split('\n');
-    var isHero = npcId=='hero';
 
     core.clearMap('ui', 0, 0, 416, 416);
 
-    var left=10, top = Math.min(416-24*(contents.length+1)-65, 250), right = 416 - 2*left, bottom = 416 - 10 - top;
+    var height = 416 - 10 - Math.min(416-24*(contents.length+1)-65, 250);
+    var left=10, top = (416-height)/2, right = 416 - 2*left, bottom = height;
 
     // var left = 97, top = 64, right = 416 - 2 * left, bottom = 416 - 2 * top;
     core.setAlpha('ui', 0.85);
@@ -2299,14 +2509,17 @@ core.prototype.drawTextBox = function(content, npcId) {
     core.canvas.ui.textAlign = "left";
 
     var content_left = left + 25, content_top = top + 35;
-    if (core.isset(npcId)) {
+    if (core.isset(id)) {
+
         content_left = left+63;
         content_top = top+57;
-        core.fillText('ui', isHero?core.status.hero.name:core.material.npcs[npcId].name, left + 63, top + 30, '#FFD700', 'bold 22px Verdana');
 
+        var name, image, cls;
         // 动画
         core.strokeRect('ui', left + 15 - 1, top + 40 - 1, 34, 34, '#FFD700', 2);
-        if (isHero) {
+
+        if (id == 'hero') {
+            core.fillText('ui', core.status.hero.name, left + 63, top + 30, '#FFD700', 'bold 22px Verdana');
             core.status.boxAnimateObjs = [];
             core.setBoxAnimate(core.firstData.animateSpeed);
             core.clearMap('ui', left + 15, top + 40, 32, 32);
@@ -2315,13 +2528,26 @@ core.prototype.drawTextBox = function(content, npcId) {
             core.canvas.ui.drawImage(core.material.images.heros, heroIcon.loc['stop'] * heroIcon.size, heroIcon.loc.iconLoc * heroIcon.size, heroIcon.size, heroIcon.size, left+15, top+30, 32, 32);
         }
         else {
-            core.status.boxAnimateObjs = [];
-            core.status.boxAnimateObjs.push({
-                'bgx': left + 15, 'bgy': top + 40, 'bgsize': 32,
-                'image': core.material.images.npcs,
-                'x': left + 15, 'y': top + 40, 'icon': core.material.icons.npcs[core.material.npcs[npcId].icon]
-            });
-            core.setBoxAnimate(core.firstData.animateSpeed);
+            var name = null, image = null, icon = null;
+            if (core.material.npcs.hasOwnProperty(id)) {
+                name = core.material.npcs[id].name;
+                image = core.material.images.npcs;
+                icon = core.material.icons.npcs[core.material.npcs[id].icon];
+            }
+            else if (core.material.enemys.hasOwnProperty(id)) {
+                name = core.material.enemys[id].name;
+                image = core.material.images.enemys;
+                icon = core.material.icons.enemys[id];
+            }
+            if (name != null) {
+                core.fillText('ui', name, left + 63, top + 30, '#FFD700', 'bold 22px Verdana');
+                core.status.boxAnimateObjs = [];
+                core.status.boxAnimateObjs.push({
+                    'bgx': left + 15, 'bgy': top + 40, 'bgsize': 32,
+                    'image': image, 'x': left + 15, 'y': top + 40, 'icon': icon
+                });
+                core.setBoxAnimate(core.firstData.animateSpeed);
+            }
         }
     }
 
@@ -2330,7 +2556,7 @@ core.prototype.drawTextBox = function(content, npcId) {
         content_top+=24;
     }
 
-    core.fillText('ui', '<点击任意位置继续>', 270, 393, '#CCCCCC', '13px Verdana');
+    core.fillText('ui', '<点击任意位置继续>', 270, top+height-13, '#CCCCCC', '13px Verdana');
 }
 
 core.prototype.drawAbout = function() {
@@ -2369,7 +2595,7 @@ core.prototype.drawAbout = function() {
 
 core.prototype.setLocalStorage = function(key, value) {
     try {
-        localStorage.setItem(core.firstData.name + "-" + key, JSON.stringify(value));
+        localStorage.setItem(core.firstData.name + "_" + key, JSON.stringify(value));
         return true;
     }
     catch (e) {
@@ -2378,7 +2604,7 @@ core.prototype.setLocalStorage = function(key, value) {
     }
 }
 core.prototype.getLocalStorage = function(key, defaultValue) {
-    var value = localStorage.getItem(core.firstData.name+"-"+key);
+    var value = localStorage.getItem(core.firstData.name+"_"+key);
     if (core.isset(value)) return JSON.parse(value);
     return defaultValue;
 }
@@ -2394,8 +2620,10 @@ core.prototype.clone = function (data) {
     // array
     if (data instanceof Array) {
         var copy=[];
-        for (var i=0;i<data.length;i++) {
-            copy.push(core.clone(data[i]));
+        // for (var i=0;i<data.length;i++) {
+        for (var i in data) {
+            // copy.push(core.clone(data[i]));
+            copy[i] = core.clone(data[i]);
         }
         return copy;
     }
@@ -2419,6 +2647,19 @@ core.prototype.formatDate = function(date) {
 
 core.prototype.setTwoDigits = function (x) {
     return x<10?"0"+x:x;
+}
+
+core.prototype.lose = function() {
+    core.stopAutomaticRoute();
+    if (!core.status.heroStop) {
+        setTimeout(function() {
+            core.lose();
+        }, 30);
+        return;
+    }
+    core.status.event.id = 'lose';
+    core.lockControl();
+    core.drawTextBox('很不好意思，但是你死了。');
 }
 
 core.prototype.win = function() {
@@ -2467,8 +2708,8 @@ core.prototype.upload = function (delay) {
         parameters+="&yellow="+core.status.hero.items.keys.yellowKey+"&blue="+core.status.hero.items.keys.blueKey;
         parameters+="&playtime="+core.status.hero.time.playtime+"&totaltime="+core.status.hero.time.totaltime+"&step="+core.status.hero.steps+"&ending="+(core.status.event.id=='win'?1:0);
 
-        xmlHttp.open("GET", "/service/mota/mota4.php?"+parameters, true);
-        xmlHttp.send();
+        //xmlHttp.open("GET", "/service/mota/mota4.php?"+parameters, true);
+        //xmlHttp.send();
     }
     catch (e) {
     }
@@ -2477,7 +2718,7 @@ core.prototype.upload = function (delay) {
 
 // 作弊
 core.prototype.cheat = function() {
-    core.setStatus('hp', 10000);
+    core.setStatus('hp', 999999);
     core.setStatus('atk', 10000);
     core.setStatus('def', 10000);
     core.setStatus('mdef', 10000);
@@ -3094,7 +3335,7 @@ core.prototype.drawSLPanel = function(page) {
             core.fillText('ui', '存档'+id, (2*i+1)*u, 35, '#FFFFFF', "bold 17px Verdana");
             core.strokeRect('ui', (2*i+1)*u-size/2, 50, size, size, '#FFFFFF', 2);
             if (core.isset(data) && core.isset(data.floorId)) {
-                core.drawThumbnail('ui', core.maps.load(data.maps[data.floorId]).blocks, (2*i+1)*u-size/2, 50, size, data.hero.loc);
+                core.drawThumbnail('ui', core.maps.load(data.maps, data.floorId).blocks, (2*i+1)*u-size/2, 50, size, data.hero.loc);
                 core.fillText('ui', core.formatDate(new Date(data.time)), (2*i+1)*u, 65+size, '#FFFFFF', '10px Verdana');
             }
             else {
@@ -3157,6 +3398,10 @@ core.prototype.getStatus = function (statusName) {
 }
 
 core.prototype.updateStatusBar = function () {
+
+    // 上限999999
+    core.setStatus('hp', Math.min(999999, core.getStatus('hp')));
+
     // core.statusBar.floor.innerHTML = core.maps.maps[core.status.floorId].name;
     var statusList = ['hp', 'atk', 'def', /*'mdef',*/ 'money', 'experience'];
     statusList.forEach(function (item) {

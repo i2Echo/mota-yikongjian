@@ -33,6 +33,7 @@ items.prototype.init = function () {
 
         // 物品
         'greenKey': {'cls': 'tools', 'name': '绿钥匙', 'text': '可以打开一扇绿门'},
+        'steelKey': {'cls': 'tools', 'name': '铁门钥匙', 'text': '可以打开一扇铁门'},
         'book': {'cls': 'constants', 'name': '怪物手册', 'text': '可以查看当前楼层各怪物属性。'},
         'fly': {'cls': 'constants', 'name': '楼层传送器', 'text': '可以自由往来去过的楼层。'},
         'coin': {'cls': 'constants', 'name': '幸运金币', 'text': '持有时打败怪物可得双倍金币'},

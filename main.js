@@ -103,6 +103,11 @@ function main() {
                 'playtime': 0,
                 'totaltime': 0,
                 'lasttime': new Date()
+            },
+            'flags': {
+                'passLava': false, // 经过岩浆则禁用商店
+                'hasShield5': false, // 有神圣盾
+                'seal20F': false // 20F封印
             }
         },
         'hard': 10,
@@ -111,61 +116,61 @@ function main() {
                 'id': 'shop1', 'title': '贪婪之神', 'name': '3楼金币商店', 'icon': 'blueShop',
                 'times': 0, 'need': "25", 'visited': false, 'use': 'money',
                 'choices': [
-                    {'text': '生命+800', 'effect': 'hp+=800'},
-                    {'text': '攻击+4', 'effect': 'atk+=4'},
-                    {'text': '防御+4', 'effect': 'def+=4'}
+                    {'text': '生命+800', 'effect': 'status,hp,800'},
+                    {'text': '攻击+4', 'effect': 'status,atk,4'},
+                    {'text': '防御+4', 'effect': 'status,def,4'}
                 ]
             },
             'shop2': {
                 'id': 'shop2', 'title': '经验之神', 'name': '5楼经验商店', 'icon': 'redShop',
                 'times': 0, 'need': -1, 'visited': false, 'use': 'experience',
                 'choices': [
-                    {'text': '攻击+5', 'effect': 'atk+=5', 'need': '30'},
-                    {'text': '防御+5', 'effect': 'def+=5' ,'need': '30'},
-                    {'text': '等级+1', 'effect': 'hp+=1000;atk+=7;def+=7', 'need': 100}
+                    {'text': '攻击+5', 'effect': 'status,atk,5', 'need': '30'},
+                    {'text': '防御+5', 'effect': 'status,def,5' ,'need': '30'},
+                    {'text': '等级+1', 'effect': 'status,hp,1000;status,atk,7;status,def,7', 'need': '100'}
                 ]
             },
             'shop3': {
                 'id': 'shop3', 'title': '钥匙商人', 'name': '6楼钥匙商人', 'icon': 'womanMagician',
                 'times': 0, 'need': -1, 'visited': false, 'use': 'money',
                 'choices': [
-                    {'text': '黄钥匙+1', 'effect': 'yellowKey++', 'need': '10'},
-                    {'text': '蓝钥匙+1', 'effect': 'blueKey++', 'need': '50'},
-                    {'text': '红钥匙+1', 'effect': 'redKey++', 'need': '100'}
+                    {'text': '黄钥匙+1', 'effect': 'item,yellowKey,1', 'need': '10'},
+                    {'text': '蓝钥匙+1', 'effect': 'item,blueKey,1', 'need': '50'},
+                    {'text': '红钥匙+1', 'effect': 'item,redKey,1', 'need': '100'}
                 ]
             },
             'shop4': {
                 'id': 'shop4', 'title': '贪婪之神', 'name': '10楼金币商店', 'icon': 'blueShop',
                 'times': 0, 'need': "100", 'visited': false, 'use': 'money',
                 'choices': [
-                    {'text': '生命+4000', 'effect': 'hp+=4000'},
-                    {'text': '攻击+20', 'effect': 'atk+=20'},
-                    {'text': '防御+20', 'effect': 'def+=20'}
+                    {'text': '生命+4000', 'effect': 'status,hp,4000'},
+                    {'text': '攻击+20', 'effect': 'status,atk,20'},
+                    {'text': '防御+20', 'effect': 'status,def,20'}
                 ]
             },
             'shop5': {
                 'id': 'shop5', 'title': '经验之神', 'name': '15楼经验商店', 'icon': 'redShop',
                 'times': 0, 'need': -1, 'visited': false, 'use': 'experience',
                 'choices': [
-                    {'text': '攻击+17', 'effect': 'atk+=17', 'need': '95'},
-                    {'text': '防御+17', 'effect': 'def+=17' ,'need': '95'},
-                    {'text': '等级+3', 'effect': 'hp+=3000;atk+=21;def+=21', 'need': '270'}
+                    {'text': '攻击+17', 'effect': 'status,atk,17', 'need': '95'},
+                    {'text': '防御+17', 'effect': 'status,def,17' ,'need': '95'},
+                    {'text': '等级+3', 'effect': 'status,hp,3000;status,atk,21;status,def,21', 'need': '270'}
                 ]
             },
         },
         'npcs': {},
         'animateSpeed': 500
     }
-    console.log('初始数据已声明');
+    //console.log('初始数据已声明');
 }
 
 main.prototype.init = function () {
-    console.log('main函数对象开始初始化');
+    //console.log('main函数对象开始初始化');
     for (var i = 0; i < main.dom.gameCanvas.length; i++) {
         main.canvas[main.dom.gameCanvas[i].id] = main.dom.gameCanvas[i].getContext('2d');
-        console.log('已转存canvas ' + main.dom.gameCanvas[i].id + ' dom对象到main的canvas对象');
+        //console.log('已转存canvas ' + main.dom.gameCanvas[i].id + ' dom对象到main的canvas对象');
     }
-    console.log('js加载器开始运行');
+    //console.log('js加载器开始运行');
     main.loader(function () {
         var coreData = {};
         for (i = 0; i < main.loadList.length; i++) {
@@ -174,22 +179,22 @@ main.prototype.init = function () {
             }
             main[main.loadList[i]].init(main.dom);
             coreData[main.loadList[i]] = main[main.loadList[i]];
-            console.log(main.loadList[i] + '函数对象初始化完成');
+            //console.log(main.loadList[i] + '函数对象初始化完成');
         }
         main.core.init(main.dom, main.statusBar, main.canvas, main.images, main.sounds, main.firstData, coreData);
-        console.log('core函数对象初始化完成');
+        //console.log('core函数对象初始化完成');
         main.core.resize(main.dom.body.clientWidth, main.dom.body.clientHeight);
-        console.log('main函数对象初始化完成');
+        //console.log('main函数对象初始化完成');
     });
 }
 
 main.prototype.loader = function (callback) {
     var instanceNum = 0;
     for (var i = 0; i < main.loadList.length; i++) {
-        console.log('开始动态加载' + main.loadList[i] + '.js');
+        //console.log('开始动态加载' + main.loadList[i] + '.js');
         main.loadMod(main.loadList[i], function (modName) {
             instanceNum = 0;
-            console.log(modName + '.js 加载完成');
+            //console.log(modName + '.js 加载完成');
             main.setMainTipsText(modName + '.js 加载完毕');
             for (var key in main.instance) {
                 instanceNum++;
@@ -197,7 +202,7 @@ main.prototype.loader = function (callback) {
             if (instanceNum === main.loadList.length) {
                 delete main.instance;
                 main.dom.mainTips.style.display = 'none';
-                console.log('所有js动态加载完成 成功销毁instance');
+                //console.log('所有js动态加载完成 成功销毁instance');
                 callback();
             }
         });
@@ -210,7 +215,7 @@ main.prototype.loadMod = function (modName, callback) {
     main.dom.body.appendChild(script);
     script.onload = function () {
         main[modName] = main.instance[modName];
-        console.log('成功将' + modName + '.js 的实例对象转存到main的instance');
+        //console.log('成功将' + modName + '.js 的实例对象转存到main的instance');
         callback(modName);
     }
 }

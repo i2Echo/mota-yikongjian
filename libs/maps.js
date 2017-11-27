@@ -121,7 +121,7 @@ maps.prototype.init = function () {
             [6, 11, 1, 117, 19, 117, 19, 117, 1, 117, 1, 117, 6],
             [6, 11, 1, 1, 1, 1, 1, 1, 1, 117, 1, 46, 6],
             [6, 0, 0, 117, 12, 117, 0, 0, 1, 81, 1, 1, 6],
-            [6, 1, 81, 1, 1, 1, 1, 0, 1, 117, 0, 0, 6],
+            [6, 1, 81, 1, 1, 1, 1, 7, 1, 117, 0, 0, 6],
             [6, 87, 118, 117, 11, 117, 0, 0, 1, 0, 0, 88, 6],
             [6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],
         ],
@@ -190,7 +190,7 @@ maps.prototype.init = function () {
             [6, 19, 1, 1, 1, 1, 0, 0, 0, 0, 0, 87, 6],
             [6, 0, 1, 0, 0, 127, 0, 1, 1, 1, 1, 0, 6],
             [6, 0, 1, 0, 1, 1, 0, 1, 12, 12, 1, 0, 6],
-            [6, 0, 1, 0, 19, 1, 0, 1, 12, 12, 1, 0, 6],
+            [6, 0, 1, 0, 43, 1, 0, 1, 12, 12, 1, 0, 6],
             [6, 119, 1, 1, 1, 1, 119, 1, 1, 1, 1, 119, 6],
             [6, 0, 0, 0, 0, 145, 0, 145, 0, 0, 0, 0, 6],
             [6, 126, 1, 1, 1, 1, 126, 1, 1, 1, 1, 126, 6],
@@ -339,7 +339,7 @@ maps.prototype.init = function () {
         ]
     ]
 
-    this.maps = {};
+    this.maps = [];
     for (var f = 0; f < map_txt.length; f++) {
         var floorId = 'MT' + f;
         var map = map_txt[f];
@@ -347,6 +347,11 @@ maps.prototype.init = function () {
         content['floorId'] = floorId;
         content['name'] = f;
         content['title'] = '主塔 ' + f + ' 层';
+        if (f==21) { // 隐藏层
+            content['floorId'] = 'MT17-hidden';
+            content['name'] = '17';
+            content['title'] = '隐藏层';
+        }
         content['canFlyTo'] = true;
         if (f==0 || f==14 || f==20 || f==21) content['canFlyTo'] = false;
         var blocks = [];
@@ -419,9 +424,6 @@ maps.prototype.getBlock = function (f, x, y, id) {
     if (id == 52) tmp.event = {'cls': 'npcs', 'id': 'magician', 'trigger': 'visitNpc', 'npcid': 'npc2'};
     if (id == 53) tmp.event = {'cls': 'npcs', 'id': 'womanMagician', 'trigger': 'visitNpc', 'npcid': 'npc3'};
     if (id == 54) tmp.event = {'cls': 'npcs', 'id': 'womanMagician', 'trigger': 'visitNpc', 'npcid': 'npc4'};
-    if (id == 55) tmp.event = {'cls': 'npcs', 'id': 'wood', 'trigger': 'visitNpc', 'npcid': 'npc5'};
-    if (id == 56) tmp.event = {'cls': 'npcs', 'id': 'wood', 'trigger': 'visitNpc', 'npcid': 'npc6'};
-    if (id == 57) tmp.event = {'cls': 'npcs', 'id': 'wood', 'trigger': 'visitNpc', 'npcid': 'npc7'};
 
     // 商店
     if (id == 71) tmp.event = {'cls': 'npcs', 'id': 'blueShop', 'trigger': 'openShop', 'shopid': 'shop1'};
@@ -561,9 +563,10 @@ maps.prototype.updateNoPass = function (maps) {
 
 maps.prototype.save = function(maps, floorId) {
     if (floorId==undefined || floorId==null) {
-        var map = {};
+        var map = [];
         for (var id in maps) {
-            map[id] = this.save(maps, id);
+            // map[id] = this.save(maps, id);
+            map.push(this.save(maps, id));
         }
         return map;
     }
@@ -588,24 +591,33 @@ maps.prototype.save = function(maps, floorId) {
     return floor;
 }
 
-maps.prototype.load = function (data) {
-    if (data.floorId == undefined) {
-        var map = {};
+maps.prototype.load = function (data, floorId) {
+    if (floorId == undefined) {
+        var map = [];
         for (var id in data) {
-            map[id] = this.load(data[id]);
+            map[data[id].floorId] = this.load(data, data[id].floorId);
         }
         return map;
     }
+    var x = null;
+    for (var id in data) {
+        if (data[id].floorId == floorId) {
+            x = data[id];
+            break;
+        }
+    }
+    if (x==null) return {};
+
     var content = {};
-    content['floorId'] = data.floorId;
-    content['name'] = data.name;
-    content['title'] = data.title;
-    content['canFlyTo'] = data.canFlyTo;
+    content['floorId'] = x.floorId;
+    content['name'] = x.name;
+    content['title'] = x.title;
+    content['canFlyTo'] = x.canFlyTo;
     var blocks = [];
     for (var i = 0; i < 13; i++) {
         for (var j = 0; j < 13; j++) {
-            var id = data.blocks[i][j];
-            var block = this.getBlock(data.name, i, j, id);
+            var id = x.blocks[i][j];
+            var block = this.getBlock(x.name, i, j, id);
             if (block!=null) blocks.push(block);
         }
     }

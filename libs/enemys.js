@@ -62,7 +62,7 @@ enemys.prototype.init = function () {
       /*   'poisonZombie': {'name': '绿兽人', 'hp': 660, 'atk': 443, 'def': 210, 'money': 43, 'experience': 1,'special': 0},*/
          'magicDragon': {'name': '魔龙', 'hp': 33333, 'atk': 3333, 'def': 3333, 'money': 0, 'experience': 0,'special': 0, 'bomb': false },
          'octopus': {'name': '血影', 'hp': 10000, 'atk': 999, 'def': 999, 'money': 999, 'experience': 999, 'special': 0},
-         'fairy': {'name': '仙子', 'hp': 60000, 'atk': 25000, 'def': 5000, 'money': 0, 'experience': 0,'special': 0, 'bomb': false },
+         'fairy': {'name': '仙子', 'hp': 600000, 'atk': 250000, 'def': 50000, 'money': 0, 'experience': 0,'special': 0, 'bomb': false },
          'greenKnight': {'name': '强盾骑士', 'hp': 15000, 'atk': 3000, 'def': 2000, 'money': 148, 'experience': 133,'special': 3},
           }
 }
