@@ -41,7 +41,7 @@ npcs.prototype.getEffect = function (npcid, times) {
                     'choices': [
                         {"text": '破墙镐', 'effect': 'item,pickaxe,1'},
                         {"text": '炸弹', 'effect': 'item,bomb,1'},
-                        {"text": '中心对称飞行器', 'effect': 'item,enterFly,1'}
+                        {"text": '中心对称飞行器', 'effect': 'item,centerFly,1'}
                     ]
                 },
                 {
