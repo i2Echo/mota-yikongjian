@@ -37,10 +37,13 @@ events.prototype.init = function () {
                 callback();
         },
         'passNet': function (data, core, callback) {
-            // core.passNet(data.event.id);
-            this.passNet(data);
+            core.events.passNet(data);
             if (core.isset(callback))
                 callback();
+        },
+        'blockEvent': function (data, core, callback) {
+            core.events.blockEvent(data);
+            if (core.isset(callback)) callback();
         }
     }
 }
@@ -53,6 +56,86 @@ events.prototype.getEvents = function (eventName) {
 }
 
 main.instance.events = new events();
+
+
+////// 转换楼层结束的事件 //////
+events.prototype.afterChangeFloor = function (floorId) {
+
+    core.status.hero.flags.passLava = false;
+
+    // 首次到达某层
+    if (!core.isset(core.status.hero.flags.visitFloors[floorId])) {
+        core.status.hero.flags.visitFloors[floorId]=true;
+        if (floorId=='MT1') {
+            core.drawText([
+                {'content': '这里...是哪里？', 'id': 'hero'},
+                {'content': '难道？我还活着？', 'id': 'hero'},
+                {'content': '一股似曾相识的感觉，\n但我又不知道在哪里见过。', 'id': 'hero'},
+                {'content': '魔塔已经被大火烧成了灰烬，\n这里为什么安然无恙？这到底是什么地方？', 'id': 'hero'},
+                {'content': '这里，我感觉到不像是我生活的地方。\n难道我已经到了异世界吗？', 'id': 'hero'},
+                {'content': '算了，不管这么多了。\n只要我还活着，一切都好。', 'id': 'hero'},
+                {'content': '我先四处看看要怎么出去吧。', 'id': 'hero'},
+            ]);
+        }
+        if (floorId=='MT2') {
+            core.drawText([
+                {'content': '奇怪，我明明杀死了血影。\n为什么这里又出现了一个。', 'id': 'hero'},
+                {'content': '不过我的力量似乎都被冻结了。\n目前肯定是无法杀死血影，\n等我变强以后再回来吧。', 'id': 'hero'},
+            ]);
+        }
+        if (floorId=='MT11') {
+            core.drawText([
+                {'content': '诶，奇怪，我明明只是上了一层楼而已。\n为什么，这里变得如此的寒冷...', 'id': 'hero'},
+                {'content': '诶，毕竟我已经不在我生活的世界了。\n很多事情都是预料不到的。', 'id': 'hero'},
+                {'content': '不管怎么说，我要继续上去看个究竟。', 'id': 'hero'}
+            ])
+        }
+        if (floorId=='MT20') {
+            core.drawText([
+                {'content': '这...这里就是塔顶了吗。\n仙子，你怎么也在这里。\n魔塔倒塌了，你也死掉了所以到达这里了吗？', 'id': 'hero'},
+                {'content': '呵，怎么可能。我怎么会这么容易死。\n这里就是位面的交界处了，\n我就是这个位面的操纵者。', 'id': 'fairy'},
+                {'content': '你居然有这样强大的能力！\n跟我第一次遇见你差距太大了吧！', 'id': 'hero'},
+                {'content': '是的，一开始，我弱不禁风。\n但是你帮我集齐了十字架和三个灵杖，\n让我的能力得到了巨幅度的提高。', 'id': 'fairy'},
+                {'content': '估计你自己也想不到这些东西有这么大的威力。\n不过还要感谢你的无私奉献成就了我的现在。', 'id': 'fairy'},
+                {'content': '......', 'id': 'hero'},
+                {'content': '其实，魔塔倒塌是我一手策划的，\n就是为了把所有的生物都驱逐进这个亡灵位面。', 'id': 'fairy'},
+                {'content': '我一直策划着等我有一天变强了，\n我要一人统治世界，消灭掉所有的其他生物。\n如今我的目标达成了。', 'id': 'fairy'},
+                {'content': '消灭其他所有生物？也就是说也包括我？', 'id': 'hero'},
+                {'content': '没错。愚蠢的人类终于觉悟了。', 'id': 'fairy'},
+                {'content': '呵呵，想当初，我就应该一刀把你杀了。\n真没想到我会轻信你的鬼话。', 'id': 'hero'},
+                {'content': '现在说这些还有什么用呢，\n你和我的力量根本就不是一个级别的。\n劝你放弃抵抗吧。', 'id': 'fairy'},
+                {'content': '（仙子有来源于高维度的力量支持，\n所以目前强大无比。我是不可能战胜的。）', 'id': 'hero'},
+                {'content': '（不过，这个位面力量非常不稳定，\n如果我能成功的封印她，切断外界的支持，\n也许还能有机会求胜。）', 'id': 'hero'},
+                {'content': '（仙子目前的位置正好被八个小怪包围，\n如果按照当年封印Zeno的方法去封印她，\n能否成功呢？这是我唯一的希望。）', 'id': 'hero'},
+                {'content': '系统提示：（专门给没玩过TSW的玩家看的）\n击杀仙子周围的四个怪，保留四个角的怪。\n如果还看不懂的，看一眼你的小键盘，\n仙子在5的位置，击杀2468。'},
+            ]);
+        }
+    }
+}
+
+////// 走到某位置时触发事件 //////
+events.prototype.blockEvent = function (data) {
+
+    if (core.status.floorId=='MT16' && data.x==6 && data.y==2) {
+        core.waitHeroToStop(function (){
+            // 和魔王对话
+            core.drawText([
+                {'content': '冥灵魔王？你不是已经被我杀了吗？\n为什么会出现在这里？？', 'id': 'hero'},
+                {'content': '因为...这里位于魔塔的另一个位面。\n大多数情况下，塔内死亡的生物都会回归这里。', 'id': 'vampire'},
+                {'content': '你的意思是说，我现在已经死了？', 'id': 'hero'},
+                {'content': '是的，能到达这里的，\n除了可以掌控位面的高智慧生物以外，只有\n亡灵。', 'id': 'vampire'},
+                {'content': '呵，既然，我的生命已经不复存在。\n我已经没有什么好怕的了。\n大魔头，我们冤家路窄，居然又见面了，\n决斗吧！', 'id': 'hero'},
+                {'content': '你似乎还没明白。。。', 'id': 'vampire'},
+                {'content': '明白什么？', 'id': 'hero'},
+                {'content': '诶，算了，决一死战吧。', 'id': 'vampire'},
+            ], function() {
+                core.removeBlock('data', data.x, data.y);
+            })
+        });
+        return;
+    }
+
+}
 
 ////// 选中菜单栏 //////
 events.prototype.selectSettings = function (y) {
@@ -163,8 +246,8 @@ events.prototype.afterBattle = function(enemyId) {
 }
 
 /****** 经过路障 ******/
-events.prototype.passNet = function (id) {
-    if (id=='lavaNet') {
+events.prototype.passNet = function (data) {
+    if (data.event.id=='lavaNet') {
         core.status.hero.hp -= 100;
         if (core.status.hero.hp<=0) {
             core.status.hero.hp=0;

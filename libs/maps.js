@@ -367,9 +367,15 @@ maps.prototype.init = function () {
 }
 
 maps.prototype.getBlock = function (f, x, y, id) {
-    if (id==0) return null;
-
     var tmp = {'x': x, 'y': y, 'id': id};
+
+    // 16F的事件处理
+    if (id == 0) {
+        if (f==16 && x==6 && y==2) {
+            tmp.event = {'cls': 'terrains', 'id': 'ground', 'noPass': false, 'trigger': 'blockEvent'};
+        }
+    }
+
     // 0-9 地形
     if (id == 1) tmp.event = {'cls': 'terrains', 'id': 'yellowWall'}; // 黄墙
     if (id == 2) tmp.event = {'cls': 'terrains', 'id': 'blueWall'}; // 蓝墙
@@ -526,6 +532,7 @@ maps.prototype.getBlock = function (f, x, y, id) {
 
     // 200+ 特殊
 
+    if (tmp.event == undefined) return null;
     return tmp;
 }
 

@@ -97,9 +97,6 @@ function core() {
         },
         'openingDoor': null,
 
-        // 键盘事件
-        'keyEvents': {'up': false, 'down': false, 'left': false, 'right': false},
-
         // 动画
         'twoAnimateObjs': [],
         'fourAnimateObjs': [],
@@ -108,19 +105,19 @@ function core() {
     this.status = {};
 }
 
-core.prototype.init = function (dom, statusBar, canvas, images, sounds, firstData, coreData) {
+core.prototype.init = function (dom, statusBar, canvas, images, sounds, coreData) {
     core.dom = dom;
     core.statusBar = statusBar;
     core.canvas = canvas;
     core.images = images;
     core.sounds = sounds;
-    core.firstData = firstData;
     for (var key in coreData) {
         core[key] = coreData[key];
     }
-    core.initStatus.shops = firstData.shops;
-    core.initStatus.npcs = firstData.npcs;
-    core.dom.versionLabel.innerHTML = firstData.version;
+    core.firstData = core.data.getFirstData();
+    core.initStatus.shops = core.firstData.shops;
+    core.initStatus.npcs = core.firstData.npcs;
+    core.dom.versionLabel.innerHTML = core.firstData.version;
     core.material.items = core.items.getItems();
     // core.status.maps = core.maps.getMaps();
     core.initStatus.maps = core.maps.getMaps();
@@ -319,6 +316,7 @@ core.prototype.playGame = function () {
     core.statusBar.floor.innerHTML = core.status.maps[core.status.floorId].name;
     core.updateStatusBar();
     core.hideStartAnimate(function () {
+        /*
         core.playSound('floor', 'mp3');
         core.drawMap(core.status.floorId, function () {
             core.hide(core.dom.floorMsgGroup, 10);
@@ -326,6 +324,10 @@ core.prototype.playGame = function () {
             core.setHeroLoc('x', core.status.hero.loc.x);
             core.setHeroLoc('y', core.status.hero.loc.y);
             core.drawHero(core.getHeroLoc('direction'), core.getHeroLoc('x'), core.getHeroLoc('y'), 'stop');
+            core.setHeroMoveTriggerInterval();
+        });
+        */
+        core.changeFloor(core.status.floorId, null, core.firstData.hero.loc, function() {
             core.setHeroMoveTriggerInterval();
         });
     });
@@ -349,11 +351,6 @@ core.prototype.keyDown = function(e) {
 		core.stopAutomaticRoute();
 	}
 	if (core.status.lockControl) {
-        core.status.keyEvents.left = false;
-        core.status.keyEvents.right = false;
-        core.status.keyEvents.up = false;
-        core.status.keyEvents.down = false;
-
         if (core.status.event.id == 'book') {
             if (e.keyCode==37) core.drawEnemyBook(core.status.event.data - 1);
             else if (e.keyCode==39) core.drawEnemyBook(core.status.event.data + 1);
@@ -373,19 +370,15 @@ core.prototype.keyDown = function(e) {
     }
 	switch(e.keyCode) {
 		case 37:
-            core.status.keyEvents.left = true;
 			core.moveHero('left');
 		break;
 		case 38:
-            core.status.keyEvents.up = true;
 			core.moveHero('up');
 		break;
 		case 39:
-            core.status.keyEvents.right = true;
 			core.moveHero('right');
 		break;
 		case 40:
-            core.status.keyEvents.down = true;
 			core.moveHero('down');
 		break;
 	}
@@ -448,24 +441,17 @@ core.prototype.keyUp = function(e) {
         case 90: // Z
             core.turnHero();
             break;
-        case 37:
-            core.status.keyEvents.left = false;
+        case 37: // UP
             break;
-        case 38:
-            core.status.keyEvents.up = false;
+        case 38: // DOWN
             break;
-        case 39:
-            core.status.keyEvents.right = false;
+        case 39: // RIGHT
             break;
-        case 40:
-            core.status.keyEvents.down = false;
+        case 40: // DOWN
             break;
     }
-    if (!(core.status.keyEvents.left || core.status.keyEvents.right
-        || core.status.keyEvents.up || core.status.keyEvents.down))
-        core.stopHero();
+    core.stopHero();
 
-	// core.unLockKeyBoard();
 }
 
 
@@ -930,7 +916,7 @@ core.prototype.automaticRoute = function (destX, destY) {
                 route[nid] = direction;
                 break;
             }
-            if (core.terrainExists(nx, ny) || core.noPassExists(nx, ny))
+            if (core.noPassExists(nx, ny))
                 continue;
             route[nid] = direction;
             queue.push(nid);
@@ -1171,6 +1157,14 @@ core.prototype.moveOneStep = function() {
     core.status.hero.steps++;
 }
 
+core.prototype.waitHeroToStop = function(callback) {
+    core.stopAutomaticRoute();
+    if (core.isset(callback)) {
+        core.lockControl();
+        setTimeout(function(){callback()}, 30);
+    }
+}
+
 core.prototype.stopHero = function () {
     core.status.heroStop = true;
 }
@@ -1381,17 +1375,14 @@ core.prototype.changeFloor = function (floorId, stair, heroLoc, callback) {
             core.drawMap(floorId, function () {
                 core.hide(core.dom.floorMsgGroup, 10, function () {
                     core.unLockControl();
+                    core.events.afterChangeFloor(floorId);
+                    if (core.isset(callback)) callback();
                 });
                 core.setHeroLoc('direction', heroLoc.direction);
                 core.setHeroLoc('x', heroLoc.x);
                 core.setHeroLoc('y', heroLoc.y);
                 core.drawHero(core.getHeroLoc('direction'), core.getHeroLoc('x'), core.getHeroLoc('y'), 'stop');
                 core.updateFg();
-
-                // 上下楼切换
-                core.status.hero.flags.passLava = false;
-
-                if (core.isset(callback)) callback();
             });
         });
     }, 50);
@@ -1537,7 +1528,7 @@ core.prototype.drawMap = function (mapName, callback) {
     core.enabledAllTrigger();
     for (x = 0; x < 13; x++) {
         for (y = 0; y < 13; y++) {
-            blockIcon = core.material.icons.terrains.blackFloor;
+            blockIcon = core.material.icons.terrains.ground;
             blockImage = core.material.images.terrains;
             core.canvas.bg.drawImage(blockImage, 0, blockIcon.loc * blockIcon.size, blockIcon.size, blockIcon.size, x * blockIcon.size, y * blockIcon.size, blockIcon.size, blockIcon.size);
         }
@@ -1559,7 +1550,7 @@ core.prototype.drawMap = function (mapName, callback) {
             }
         }
         else {
-            blockIcon = core.material.icons.terrains.blackFloor;
+            blockIcon = core.material.icons.terrains.ground;
             blockImage = core.material.images.terrains;
             x = mapBlocks[b].x * blockIcon.size;
             y = mapBlocks[b].y * blockIcon.size;
@@ -1577,8 +1568,16 @@ core.prototype.drawMap = function (mapName, callback) {
 }
 
 core.prototype.noPassExists = function (x, y) {
+    /*
     if (core.enemyExists(x, y) || core.npcExists(x, y)) {
         return true;
+    }
+    */
+    var blocks = core.status.thisMap.blocks;
+    for (var n = 0; n < blocks.length; n++) {
+        if (blocks[n].x == x && blocks[n].y == y && core.isset(blocks[n].event) && core.isset(blocks[n].event.noPass) && blocks[n].event.noPass) {
+            return true;
+        }
     }
     return false;
 }
@@ -2302,7 +2301,7 @@ core.prototype.drawTextBox = function(content, id) {
             core.clearMap('ui', left + 15, top + 40, 32, 32);
             core.fillRect('ui', left + 15, top + 40, 32, 32, background);
             var heroIcon = core.material.icons.heros[core.status.hero.id]['down'];
-            core.canvas.ui.drawImage(core.material.images.heros, heroIcon.loc['stop'] * heroIcon.size, heroIcon.loc.iconLoc * heroIcon.size, heroIcon.size, heroIcon.size, left+15, top+30, 32, 32);
+            core.canvas.ui.drawImage(core.material.images.heros, heroIcon.loc['stop'] * heroIcon.size, heroIcon.loc.iconLoc * heroIcon.size, heroIcon.size, heroIcon.size, left+15, top+40, 32, 32);
         }
         else {
             var name = null, image = null, icon = null;
@@ -3113,7 +3112,7 @@ core.prototype.drawThumbnail = function(canvas, blocks, x, y, size, heroLoc) {
     var persize = size/13;
     for (var i=0;i<13;i++) {
         for (var j=0;j<13;j++) {
-            var blockIcon = core.material.icons.terrains.blackFloor;
+            var blockIcon = core.material.icons.terrains.ground;
             var blockImage = core.material.images.terrains;
             core.canvas[canvas].drawImage(blockImage, 0, blockIcon.loc * blockIcon.size, blockIcon.size, blockIcon.size, x + i * persize, y + j * persize, persize, persize);
         }
