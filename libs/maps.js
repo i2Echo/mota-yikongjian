@@ -348,7 +348,7 @@ maps.prototype.init = function () {
         content['name'] = f;
         content['title'] = '主塔 ' + f + ' 层';
         if (f==21) { // 隐藏层
-            floorId = "MT21"
+            floorId = "MT17-hidden"
             content['floorId'] = 'MT17-hidden';
             content['name'] = '17';
             content['title'] = '隐藏层';
