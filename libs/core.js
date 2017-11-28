@@ -3095,7 +3095,7 @@ core.prototype.drawSLPanel = function(page) {
             core.fillText('ui', '存档'+id, (2*i-5)*u, 230, '#FFFFFF', "bold 17px Verdana");
             core.strokeRect('ui', (2*i-5)*u-size/2, 245, size, size, '#FFFFFF', 2);
             if (core.isset(data) && core.isset(data.floorId)) {
-                core.drawThumbnail('ui', core.maps.load(data.maps[data.floorId]).blocks, (2*i-5)*u-size/2, 245, size, data.hero.loc);
+                core.drawThumbnail('ui', core.maps.load(data.maps, data.floorId).blocks, (2*i-5)*u-size/2, 245, size, data.hero.loc);
                 core.fillText('ui', core.formatDate(new Date(data.time)), (2*i-5)*u, 260+size, '#FFFFFF', '10px Verdana');
             }
             else {
