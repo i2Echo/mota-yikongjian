@@ -274,6 +274,10 @@ events.prototype.afterBattle = function(enemyId) {
                 // core.drawTip("触发仙子封印");
             }
         }
+        // 打败仙子
+        if (enemyId == 'fairy') {
+            core.events.win();
+        }
     }
 }
 
@@ -326,7 +330,19 @@ events.prototype.afterLoadData = function(data) {
 
 events.prototype.win = function() {
     // 获胜
-    core.drawText('恭喜通关难度'+core.status.hard+'！你的分数是：'+core.status.hero.hp+"\n欢迎截图到发布帖下进行炫耀！\n\n再次感谢对本塔的支持！");
+
+    core.waitHeroToStop(function() {
+        core.clearMap('all');
+        core.rmGlobalAnimate(0,0,true);
+        core.drawText([
+            {'content': '终于，我逃脱了这个可怕的异空间。', 'id': 'hero'},
+            {'content': '接下来，我要何去何从。', 'id': 'hero'},
+            {'content': '顺着这条漆黑的甬道走下去，\n我能回到我的现实世界吗？', 'id': 'hero'},
+            {'content': '恭喜通关难度' + core.status.hard + '！你的分数是：' + core.status.hero.hp + '\n欢迎截图到发布帖下进行炫耀！\n\n再次感谢对本塔的支持！'}
+        ], function () {
+            core.restart();
+        })
+    });
 }
 
 events.prototype.lose = function() {
