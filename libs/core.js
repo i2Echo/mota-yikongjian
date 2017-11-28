@@ -819,7 +819,15 @@ core.prototype.onclick = function (x, y) {
                                 case 0:
                                     // 成功
                                     var data=JSON.parse(response.msg);
-                                    console.log(data);
+                                    // console.log(data);
+                                    for (var i=1;i<=180;i++) {
+                                        if (i<=data.length) {
+                                            core.setLocalStorage("save"+i, data[i-1]);
+                                        }
+                                        else {
+                                            core.removeLocalStorage("save"+i);
+                                        }
+                                    }
                                     core.drawText("同步成功！\n你的本地所有存档均已被覆盖。");
                                     break;
                                 case -1:
@@ -2478,6 +2486,10 @@ core.prototype.getLocalStorage = function(key, defaultValue) {
     var value = localStorage.getItem(core.firstData.name+"_"+key);
     if (core.isset(value)) return JSON.parse(value);
     return defaultValue;
+}
+
+core.prototype.removeLocalStorage = function (key) {
+    localStorage.removeItem(core.firstData.name+"_"+key);
 }
 
 core.prototype.clone = function (data) {
