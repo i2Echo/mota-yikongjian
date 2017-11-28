@@ -31,7 +31,8 @@ function main() {
     // console.log('加载游戏容器和开始界面dom对象完成 如下');
     // console.log(this.dom);
     this.loadList = [
-        'items', 'icons', 'maps', 'enemys', 'events', 'npcs', 'data', 'core'
+        'items.min', 'icons.min', 'maps.min', 'enemys.min', 'events.min',
+        'npcs.min', 'data.min', 'core.min'
     ];
     // console.log('加载js文件列表加载完成' + this.loadList);
     this.images = [
@@ -85,11 +86,15 @@ main.prototype.init = function () {
     main.loader(function () {
         var coreData = {};
         for (i = 0; i < main.loadList.length; i++) {
-            if (main.loadList[i] === 'core') {
+            var name = main.loadList[i];
+            // end with -min
+            if (name.indexOf(".min")==name.length-4)
+                name=name.substring(0, name.length-4);
+            if (name === 'core') {
                 continue;
             }
-            main[main.loadList[i]].init(main.dom);
-            coreData[main.loadList[i]] = main[main.loadList[i]];
+            main[name].init(main.dom);
+            coreData[name] = main[name];
             //console.log(main.loadList[i] + '函数对象初始化完成');
         }
         main.core.init(main.dom, main.statusBar, main.canvas, main.images, main.sounds, coreData);
@@ -122,12 +127,16 @@ main.prototype.loader = function (callback) {
 
 main.prototype.loadMod = function (modName, callback) {
     var script = document.createElement('script');
+    var name = modName;
+    // end with -min
+    if (name.indexOf(".min")==name.length-4)
+        name=name.substring(0, name.length-4);
     script.src = 'libs/' + modName + '.js';
     main.dom.body.appendChild(script);
     script.onload = function () {
-        main[modName] = main.instance[modName];
+        main[name] = main.instance[name];
         //console.log('成功将' + modName + '.js 的实例对象转存到main的instance');
-        callback(modName);
+        callback(name);
     }
 }
 

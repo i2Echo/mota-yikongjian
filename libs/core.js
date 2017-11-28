@@ -1458,7 +1458,7 @@ core.prototype.calDamage = function (hero_atk, hero_def, hero_mdef, mon_hp, mon_
     if (mon_special == 5) per_damage *= 3;
     if (mon_special == 6) per_damage *= 4;
     // 反击
-    if (mon_special == 8) per_damage += (int)(0.1 * hero_atk);
+    if (mon_special == 8) per_damage += parseInt(0.1 * hero_atk);
 
     // 先攻
     var damage = mon_special == 1 ? per_damage : 0;

@@ -375,7 +375,6 @@ maps.prototype.getBlock = function (f, x, y, id) {
             tmp.event = {'cls': 'terrains', 'id': 'ground', 'noPass': false, 'trigger': 'blockEvent'};
         }
     }
-
     // 0-9 地形
     if (id == 1) tmp.event = {'cls': 'terrains', 'id': 'yellowWall'}; // 黄墙
     if (id == 2) tmp.event = {'cls': 'terrains', 'id': 'blueWall'}; // 蓝墙
