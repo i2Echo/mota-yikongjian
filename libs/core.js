@@ -818,7 +818,7 @@ core.prototype.onclick = function (x, y) {
                             switch (response.code) {
                                 case 0:
                                     // 成功
-                                    var data=JSON.decode(response.msg);
+                                    var data=JSON.parse(response.msg);
                                     console.log(data);
                                     core.drawText("同步成功！\n你的本地所有存档均已被覆盖。");
                                     break;
