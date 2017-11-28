@@ -463,7 +463,7 @@ core.prototype.keyUp = function(e) {
 
 
 core.prototype.onclick = function (x, y) {
-    console.log("Click: (" + x + "," + y + ")");
+    // console.log("Click: (" + x + "," + y + ")");
 
     // 非游戏屏幕内
     if (x<0 || y<0 || x>12 || y>12) return;
@@ -667,22 +667,6 @@ core.prototype.onclick = function (x, y) {
         return;
     }
 
-    /*
-    // 获胜
-    if (core.status.event.id == 'win') {
-        core.closePanel(false);
-        // core.restart();
-        return;
-    }
-
-    // 输掉
-    if (core.status.event.id == 'lose') {
-        core.closePanel(false);
-        core.restart();
-        return;
-    }
-    */
-
     // 纯文本
     if (core.status.event.id == 'text') {
         // core.closePanel(false);
@@ -760,6 +744,7 @@ core.prototype.onclick = function (x, y) {
             if (y==5) {
                 core.showConfirmBox("你确定要将本地存档同步到服务器吗？", function(){
                     // console.log("同步存档...");
+                    core.waiting("正在同步，请稍后...");
 
                     var formData = new FormData();
                     formData.append('type', 'save');
@@ -801,14 +786,23 @@ core.prototype.onclick = function (x, y) {
                         core.drawText("出错啦！\n无法同步存档到服务器。");
                     }
                     xhr.send(formData);
-
                 }, function() {
                     core.syncSave();
                 })
             }
             if (y==6) {
                 core.showConfirmBox("你确定要从服务器加载存档吗？\n该操作将覆盖所有本地存档且不可逆！", function(){
-                    console.log("同步存档...");
+
+                    core.waiting("正在同步，请稍后...");
+                    var id = prompt("请输入存档编号：");
+                    if (id==null || id=="") {
+                        core.syncSave(); return;
+                    }
+                    var password = prompt("请输入存档密码：");
+                    if (password==null || password=="") {
+                        core.syncSave(); return;
+                    }
+                    core.drawText("你的存档编号："+id+"\n你的存档密码："+password);
                 }, function() {
                     core.syncSave();
                 })
@@ -2862,6 +2856,25 @@ core.prototype.closePanel = function (clearData) {
     core.unLockControl();
     core.status.event.data = null;
     core.status.event.id = null;
+}
+
+core.prototype.waiting = function(text) {
+
+    core.lockControl();
+    core.status.event.id = 'waiting';
+
+    var background = core.canvas.ui.createPattern(core.material.ground, "repeat");
+    core.clearMap('ui', 0, 0, 416, 416);
+    core.setAlpha('ui', 1);
+    core.setFillStyle('ui', background);
+
+    var left = 97, top = 208 - 32 - 16, right = 416 - 2 * left, bottom = 416 - 2 * top;
+    core.fillRect('ui', left, top, right, bottom, background);
+    core.strokeRect('ui', left - 1, top - 1, right + 1, bottom + 1, '#FFFFFF', 2);
+
+    core.canvas.ui.textAlign = "center";
+    core.fillText('ui', text, 208, top + 56, "#FFFFFF", "bold 17px Verdana");
+
 }
 
 // 同步存档
