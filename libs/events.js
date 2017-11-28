@@ -75,6 +75,8 @@ events.prototype.afterChangeFloor = function (floorId) {
                 {'content': '这里，我感觉到不像是我生活的地方。\n难道我已经到了异世界吗？', 'id': 'hero'},
                 {'content': '算了，不管这么多了。\n只要我还活着，一切都好。', 'id': 'hero'},
                 {'content': '我先四处看看要怎么出去吧。', 'id': 'hero'},
+                {'content': '（系统提示）本塔快捷键如下：\n\n[↑][↓][←][→]    移动\n[X]    怪物手册\n[G]    楼层传送器\n[T]    工具栏\n[K]    快捷商店\n[S/L]    存/读档\n[ESC]    菜单栏\n同时也可以点击状态栏中的图标进行操作。'},
+                {'content': '（系统提示）\n在菜单栏里可以同步存档，这样可以很方便的让你\n在多设备（例如手机/电脑）之间接档游戏。'}
             ]);
         }
         if (floorId=='MT2') {
@@ -150,6 +152,8 @@ events.prototype.selectSettings = function (y) {
     if (y == 4) core.selectShop();
     if (y == 5) this.decreaseHard();
     if (y == 6) {
+        core.syncSave();
+        /*
         core.showConfirmBox('你确定要清空所有存档吗？', function(){
             core.closePanel();
             localStorage.clear();
@@ -157,6 +161,7 @@ events.prototype.selectSettings = function (y) {
         }, function() {
             core.openSettings(false);
         });
+        */
     }
     if (y == 7) {
         core.showConfirmBox("你确定要重新开始吗？", function () {
@@ -314,7 +319,7 @@ events.prototype.drawUIAbout = function (left, top, width, height) {
     // 名称
     core.canvas.ui.textAlign = "left";
     core.fillText('ui', "异空间", text_start, top+35, "#FFD700", "bold 22px Verdana");
-    core.fillText('ui', "HTML5复刻版", text_start+100, top+37, "#DDDDDD", "bold 15px Verdana");
+    core.fillText('ui', "HTML5复刻版", text_start+75, top+37, "#DDDDDD", "bold 15px Verdana");
     core.fillText('ui', "作者： 艾之葵", text_start, top + 80, "#FFFFFF", "bold 17px Verdana");
     core.fillText('ui', "原作： ss433_2", text_start, top + 112, "#FFFFFF", "bold 17px Verdana");
     core.fillText('ui', "制作工具： WebStorm", text_start, top + 144, "#FFFFFF", "bold 17px Verdana");
@@ -333,7 +338,7 @@ events.prototype.drawUISettings = function (left, top, width, height) {
     core.fillText('ui', "音乐： " + (core.musicStatus.soundStatus ? "[ON]" : "[OFF]"), 208, top + 56, "#FFFFFF", "bold 17px Verdana");
     core.fillText('ui', "快捷商店", 208, top + 88, "#FFFFFF", "bold 17px Verdana");
     core.fillText('ui', "降低难度", 208, top + 120, "#FFFFFF", "bold 17px Verdana");
-    core.fillText('ui', "清空存档", 208, top + 152, "#FFFFFF", "bold 17px Verdana");
+    core.fillText('ui', "同步存档", 208, top + 152, "#FFFFFF", "bold 17px Verdana");
     core.fillText('ui', "重新开始", 208, top + 184, "#FFFFFF", "bold 17px Verdana");
     core.fillText('ui', "关于本塔", 208, top + 216, "#FFFFFF", "bold 17px Verdana");
     core.fillText('ui', "返回游戏", 208, top + 248, "#FFFFFF", "bold 17px Verdana");

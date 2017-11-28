@@ -408,7 +408,11 @@ core.prototype.keyUp = function(e) {
 	    if ((core.status.event.id == 'shop' || core.status.event.id == 'settings'
             || core.status.event.id == 'selectShop') && e.keyCode==27)
 	        core.closePanel();
+	    if (core.status.event.id == 'selectShop' && e.keyCode==75)
+	        core.closePanel();
         if (core.status.event.id == 'toolbox' && (e.keyCode==84 || e.keyCode==27))
+            core.closePanel();
+        if (core.status.event.id == 'about' && (e.keyCode==13 || e.keyCode==32))
             core.closePanel();
         if (core.status.event.id == 'text' && (e.keyCode==13 || e.keyCode==32))
             core.drawText();
@@ -441,6 +445,9 @@ core.prototype.keyUp = function(e) {
         case 90: // Z
             core.turnHero();
             break;
+        case 75: // K
+            core.selectShop(true);
+            break;
         case 37: // UP
             break;
         case 38: // DOWN
@@ -456,7 +463,7 @@ core.prototype.keyUp = function(e) {
 
 
 core.prototype.onclick = function (x, y) {
-    // console.log("Click: (" + x + "," + y + ")");
+    console.log("Click: (" + x + "," + y + ")");
 
     // 非游戏屏幕内
     if (x<0 || y<0 || x>12 || y>12) return;
@@ -744,6 +751,65 @@ core.prototype.onclick = function (x, y) {
                 core.events.npcCustomActionOnClick(data, x, y);
                 return;
             }
+        }
+    }
+
+    // 同步存档
+    if (core.status.event.id == 'syncSave') {
+        if (x>=4 && x<=8) {
+            if (y==5) {
+                core.showConfirmBox("你确定要将本地存档同步到服务器吗？", function(){
+                    // console.log("同步存档...");
+
+                    var formData = new FormData();
+                    formData.append('type', 'save');
+                    formData.append('time', new Date().getTime());
+                    var saves = [];
+                    for (var i=1;i<=180;i++) {
+                        var data = core.getLocalStorage("save"+i, null);
+                        if (core.isset(data)) {
+                            saves.push(data);
+                        }
+                    }
+                    var save_text = JSON.stringify(saves);
+                    formData.append('data', save_text);
+
+                    // send
+                    var xhr = new XMLHttpRequest();
+                    xhr.open("POST", "../sync.php");
+                    xhr.timeout = 1000;
+                    xhr.onload = function(e) {
+                        if (xhr.status==200) {
+                            console.log("同步成功。");
+                        }
+                        else {
+                            core.drawText("出错啦！\n无法同步存档到服务器");
+                        }
+                    };
+                    xhr.ontimeout = function(e) {
+                        console.log(e);
+                        core.drawText("出错啦！\n无法同步存档到服务器。");
+                    }
+                    xhr.onerror = function(e) {
+                        console.log(e);
+                        core.drawText("出错啦！\n无法同步存档到服务器。");
+                    }
+                    xhr.send(formData);
+
+                }, function() {
+                    core.syncSave();
+                })
+            }
+            if (y==6) {
+                core.showConfirmBox("你确定要从服务器加载存档吗？\n该操作将覆盖所有本地存档且不可逆！", function(){
+                    console.log("同步存档...");
+                }, function() {
+                    core.syncSave();
+                })
+            }
+        }
+        if (x>=5 && x<=7 && y==7) {
+            core.openSettings(false);
         }
     }
 
@@ -2497,17 +2563,27 @@ core.prototype.showConfirmBox = function (text, yesCallback, noCallback) {
     core.setAlpha('ui', 1);
     core.setFillStyle('ui', background);
     core.setFont('ui', "bold 19px Verdana");
-    var length = core.canvas.ui.measureText(text).width;
 
-    var left = Math.min(208 - 40 - length / 2, 100), top = 140, right = 416 - 2 * left, bottom = 416 - 2 * top;
+    var contents = text.split('\n');
+    var lines = contents.length;
+    var max_length = 0;
+    for (var i in contents) {
+        max_length = Math.max(max_length, core.canvas.ui.measureText(contents[i]).width);
+    }
+
+    var left = Math.min(208 - 40 - max_length / 2, 100);
+    var top = 140 - (lines-1)*30;
+    var right = 416 - 2 * left, bottom = 416 - 140 - top;
 
     core.fillRect('ui', left, top, right, bottom, background);
     core.strokeRect('ui', left - 1, top - 1, right + 1, bottom + 1, '#FFFFFF', 2);
     core.canvas.ui.textAlign = "center";
-    core.fillText('ui', text, 208, top + 50, "#FFFFFF");
+    for (var i in contents) {
+        core.fillText('ui', contents[i], 208, top + 50 + i*30, "#FFFFFF");
+    }
 
-    core.fillText('ui', "确定", 208 - 38, top + 105, "#FFFFFF", "bold 17px Verdana");
-    core.fillText('ui', "取消", 208 + 38, top + 105);
+    core.fillText('ui', "确定", 208 - 38, top + bottom - 35, "#FFFFFF", "bold 17px Verdana");
+    core.fillText('ui', "取消", 208 + 38, top + bottom - 35);
 
 }
 
@@ -2678,7 +2754,10 @@ core.prototype.openSettings = function (need) {
     core.events.drawUISettings(left, top, right, bottom);
 }
 
-core.prototype.selectShop = function () {
+core.prototype.selectShop = function (need) {
+
+    if (core.isset(need) && !core.checkStatus('selectShop', need))
+        return;
 
     core.status.event.id = 'selectShop';
     var background = core.canvas.ui.createPattern(core.material.ground, "repeat");
@@ -2777,6 +2856,25 @@ core.prototype.closePanel = function (clearData) {
     core.unLockControl();
     core.status.event.data = null;
     core.status.event.id = null;
+}
+
+// 同步存档
+core.prototype.syncSave = function () {
+
+    core.status.event.id = 'syncSave';
+    var background = core.canvas.ui.createPattern(core.material.ground, "repeat");
+    core.clearMap('ui', 0, 0, 416, 416);
+    core.setAlpha('ui', 1);
+    core.setFillStyle('ui', background);
+
+    var left = 97, top = 208 - 32 - 16 * 3, right = 416 - 2 * left, bottom = 416 - 2 * top;
+    core.fillRect('ui', left, top, right, bottom, background);
+    core.strokeRect('ui', left - 1, top - 1, right + 1, bottom + 1, '#FFFFFF', 2);
+
+    core.canvas.ui.textAlign = "center";
+    core.fillText('ui', "同步存档到服务器", 208, top + 56, "#FFFFFF", "bold 17px Verdana");
+    core.fillText('ui', "从服务器加载存档", 208, top + 56 + 32, "#FFFFFF", "bold 17px Verdana");
+    core.fillText('ui', "返回游戏", 208, top + bottom - 40);
 }
 
 core.prototype.getCurrentEnemys = function () {
@@ -2883,7 +2981,7 @@ core.prototype.drawEnemyBook = function (page) {
             core.canvas.ui.textAlign = "left";
             core.fillText('ui', '经验', 255, 62 * i + 50, '#DDDDDD', '13px Verdana');
             core.fillText('ui', enemy.experience, 285, 62 * i + 50, '#DDDDDD', 'bold 13px Verdana');
-            damage_offset = 360;
+            damage_offset = 361;
         }
 
         core.canvas.ui.textAlign = "center";
@@ -3159,7 +3257,7 @@ core.prototype.updateStatusBar = function () {
     keys.forEach(function (key) {
         core.statusBar[key].innerHTML = core.setTwoDigits(core.status.hero.items.keys[key]);
     })
-    core.statusBar.hard.innerHTML = "Hard: " + core.status.hard;
+    core.statusBar.hard.innerHTML = "Lv" + core.status.hard;
     if (core.hasItem('book')) {
         core.statusBar.image.book.style.opacity = 1;
     } else {
@@ -3306,7 +3404,7 @@ core.prototype.resize = function(clientWidth, clientHeight) {
     // 画布大小
     var canvasWidth = 416;
     // 竖屏状态下，默认StatusBar高度（不计算边框）
-    var statusBarHeight = 80;
+    var statusBarHeight = 83;
     // 竖屏状态下，底端默认ToolBar高度（不计算边框）
     var toolBarHeight = 49;
 
@@ -3371,7 +3469,7 @@ core.prototype.resize = function(clientWidth, clientHeight) {
             var icon_toolline = core.position.toolBar.top + 13 * scale;
             var icon_toolline_per = 46 * scale;
     
-            var text_firstline = 16 * scale, text_secondline = 52 * scale;
+            var text_firstline = 16 * scale, text_secondline = 52 * scale, text_thirdline = 75 * scale;
             var text_toolline = core.position.toolBar.top + 18 * scale;
     
             core.position.items = {
@@ -3387,9 +3485,10 @@ core.prototype.resize = function(clientWidth, clientHeight) {
                     'book': {'top': icon_toolline, 'left': 8 * scale},
                     'fly': {'top': icon_toolline, 'left': 8 * scale + icon_toolline_per},
                     'toolbox': {'top': icon_toolline, 'left': 8 * scale + icon_toolline_per * 2},
-                    'save': {'top': icon_toolline, 'left': 8 * scale + icon_toolline_per * 3},
-                    'load': {'top': icon_toolline, 'left': 8 * scale + icon_toolline_per * 4},
-                    'settings': {'top': icon_toolline, 'left': 8 * scale + icon_toolline_per * 5}
+                    'shop': {'top': icon_toolline, 'left': 8*scale+icon_toolline_per*3, 'display': 'block'},
+                    'save': {'top': icon_toolline, 'left': 8 * scale + icon_toolline_per * 4},
+                    'load': {'top': icon_toolline, 'left': 8 * scale + icon_toolline_per * 5},
+                    'settings': {'top': icon_toolline, 'left': 8 * scale + icon_toolline_per * 6}
                 },
                 'floor': {'top': text_firstline, 'left': 48 * scale},
                 'hp': {'top': text_firstline, 'left': 130 * scale},
@@ -3401,7 +3500,7 @@ core.prototype.resize = function(clientWidth, clientHeight) {
                 'yellowKey': {'top': text_secondline, 'left': 268 * scale},
                 'blueKey': {'top': text_secondline, 'left': 308 * scale},
                 'redKey': {'top': text_secondline, 'left': 348 * scale},
-                'hard': {'top': text_toolline, 'left': 300*scale}
+                'hard': {'top': text_toolline, 'left': 340*scale}
             }
         }else { //横屏
             core.position.screenMode = 'horizontal';
@@ -3450,6 +3549,7 @@ core.prototype.resize = function(clientWidth, clientHeight) {
                     'book': {'top': first_tool_row, 'left': first_col},
                     'fly': {'top': first_tool_row, 'left': second_col},
                     'toolbox': {'top': first_tool_row, 'left': third_col},
+                    'shop': {'top': 0, 'left': 0, 'display': 'none'},
                     'save': {'top': first_tool_row + per_row, 'left': first_col},
                     'load': {'top': first_tool_row + per_row, 'left': second_col},
                     'settings': {'top': first_tool_row + per_row, 'left': third_col}
@@ -3464,7 +3564,7 @@ core.prototype.resize = function(clientWidth, clientHeight) {
                 'yellowKey': {'top': first_text_row + per_row * 6, 'left': first_col},
                 'blueKey':{'top': first_text_row + per_row * 6, 'left': second_col},
                 'redKey': {'top': first_text_row + per_row * 6, 'left': third_col},
-                'hard': {'top': 383*scale, 'left': 22*scale}
+                'hard': {'top': 383*scale, 'left': 43*scale}
             }
         }
         
@@ -3510,6 +3610,7 @@ core.prototype.resize = function(clientWidth, clientHeight) {
                 'book': {'top': first_tool_row, 'left': first_col},
                 'fly': {'top': first_tool_row, 'left': second_col},
                 'toolbox': {'top': first_tool_row, 'left': third_col},
+                'shop': {'top': 0, 'left': 0, 'display': 'none'},
                 'save': {'top': first_tool_row + per_row, 'left': first_col},
                 'load': {'top': first_tool_row + per_row, 'left': second_col},
                 'settings': {'top': first_tool_row + per_row, 'left': third_col}
@@ -3524,7 +3625,7 @@ core.prototype.resize = function(clientWidth, clientHeight) {
             'yellowKey': {'top': first_text_row + per_row * 6, 'left': first_col},
             'blueKey':{'top': first_text_row + per_row * 6, 'left': second_col},
             'redKey': {'top': first_text_row + per_row * 6, 'left': third_col},
-            'hard': {'top': 383, 'left': 22}
+            'hard': {'top': 383, 'left': 43}
         }
     }
 
@@ -3559,7 +3660,10 @@ core.prototype.resetSize = function () {
 
     // images
     for (var item in core.statusBar.image) {
-        core.statusBar.image[item].style.display = 'block';
+        if (core.isset(core.position.items.image[item].display))
+            core.statusBar.image[item].style.display = core.position.items.image[item].display;
+        else
+            core.statusBar.image[item].style.display = 'block';
         core.statusBar.image[item].style.width = core.position.items.image.size + "px";
         core.statusBar.image[item].style.height = core.position.items.image.size + "px";
         core.statusBar.image[item].style.top = core.position.items.image[item].top + "px";

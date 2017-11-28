@@ -47,6 +47,7 @@ function main() {
             'book': document.getElementById("img-book"),
             'fly': document.getElementById("img-fly"),
             'toolbox': document.getElementById("img-toolbox"),
+            'shop': document.getElementById("img-shop"),
             'save': document.getElementById("img-save"),
             'load': document.getElementById("img-load"),
             'settings': document.getElementById("img-settings")
@@ -186,6 +187,10 @@ main.statusBar.image.fly.onclick = function (e) {
 
 main.statusBar.image.toolbox.onclick = function (e) {
     main.core.openToolbox(true);
+}
+
+main.statusBar.image.shop.onclick = function () {
+    main.core.selectShop(true);
 }
 
 main.statusBar.image.save.onclick = function (e) {
