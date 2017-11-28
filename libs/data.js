@@ -42,7 +42,6 @@ data.prototype.init = function() {
                 'seal20F': false, // 20F封印
             }
         },
-        'hard': 10,
         'shops': {
             'shop1': {
                 'id': 'shop1', 'title': '贪婪之神', 'name': '3楼金币商店', 'icon': 'blueShop',

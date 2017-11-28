@@ -112,6 +112,14 @@ html, body {
     margin-bottom: 7%;
 }
 
+#startButtons {
+    display: block;
+}
+
+#levelChooseButtons {
+    display: none;
+}
+
 .startButton {
     width: 100%;
     margin: 20px 0;

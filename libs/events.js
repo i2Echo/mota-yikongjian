@@ -57,6 +57,29 @@ events.prototype.getEvents = function (eventName) {
 
 main.instance.events = new events();
 
+events.prototype.startGame = function (hard) {
+
+    core.hideStartAnimate(function() {
+        core.drawText([
+            "我是一位勇士。\n不，应该说，我曾经是一位勇士。",
+            "我奉国王之命，冲进魔塔。\n杀死魔王，拯救被抓走的公主。",
+            "但是，我杀死了魔王并没有选择离开。\n而是选择跟随仙子，集齐灵杖消灭了塔顶的血影。",
+            "最终，虽然我成功杀死了血影。\n但是我根本就找不到回来的路。",
+            "原来，血影根本就不在塔顶。\n而是，位于....异空间。",
+            "只可惜，异空间的入口只能进不能出。\n我深陷在这狭长的异空间内无法逃离。",
+            "我杀死血影以后的不久，\n魔塔失去了重心倒塌了。",
+            "在我的身边，烧起了熊熊大火。",
+            "而我，注定要被埋葬在这一片烈火之中吗？",
+            "我倒在地上，意识已经渐渐地模糊了。",
+            "公主，不知道你现在怎样了。\n已经离开魔塔了吗？",
+            "不管怎样，我再也见不到你了。",
+            "就这样吧，也许，这里，就是我的终点。",
+            "就这样...不知道过了多久..."
+        ], function() {
+            core.startGame(10);
+        });
+    })
+}
 
 ////// 转换楼层结束的事件 //////
 events.prototype.afterChangeFloor = function (floorId) {

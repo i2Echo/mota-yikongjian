@@ -17,9 +17,14 @@ function main() {
         'statusBar': document.getElementById('statusBar'),
         'toolBar': document.getElementById('toolBar'),
         'gameCanvas': document.getElementsByClassName('gameCanvas'),
+        'startButtons': document.getElementById('startButtons'),
         'playGame': document.getElementById('playGame'),
         'loadGame': document.getElementById('loadGame'),
         'aboutGame': document.getElementById('aboutGame'),
+        'levelChooseButtons': document.getElementById('levelChooseButtons'),
+        'easyLevel': document.getElementById('easyLevel'),
+        'normalLevel': document.getElementById('normalLevel'),
+        'hardLevel': document.getElementById('hardLevel'),
         'data': document.getElementById('data'),
         'statusLabels': document.getElementsByClassName('statusLabel')
     };
@@ -215,11 +220,27 @@ main.statusBar.image.settings.onclick = function (e) {
 }
 
 main.dom.playGame.onclick = function () {
-    // main.core;
-
+    main.dom.startButtons.style.display='none';
+    // main.dom.levelChooseButtons.style.display='block';
+    core.events.startGame();
 }
 
 main.dom.loadGame.onclick = function() {
-    main.core.startLoad();
+    main.core.load();
 }
 
+main.dom.aboutGame.onclick = function () {
+    main.core.drawAbout();
+}
+
+main.dom.easyLevel.onclick = function() {
+    core.events.startGame('easy');
+}
+
+main.dom.normalLevel.onclick = function () {
+    core.events.startGame('normal');
+}
+
+main.dom.hardLevel.onclick = function () {
+    core.events.startGame('hard');
+}

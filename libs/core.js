@@ -67,7 +67,6 @@ function core() {
             'flyRange': [],
             'items': [],
         },
-        'hard': null,
 
         // 当前地图
         'floorId': null,
@@ -152,8 +151,12 @@ core.prototype.showStartAnimate = function (callback) {
     core.dom.startTop.style.opacity=1;
     core.dom.startTop.style.display="block";
     core.dom.startButtonGroup.style.display = 'none';
+    core.dom.startButtons.style.display = 'block';
+    core.dom.levelChooseButtons.style.display = 'none';
     core.status.played = false;
     core.clearStatus();
+    core.clearMap('all');
+
     var opacityVal = 1;
     var startAnimate = window.setInterval(function () {
         opacityVal -= 0.03;
@@ -165,7 +168,7 @@ core.prototype.showStartAnimate = function (callback) {
             if (core.isset(callback)) callback();
         }
         core.dom.startTop.style.opacity = opacityVal;
-    }, 30);
+    }, 20);
 }
 
 core.prototype.hideStartAnimate = function (callback) {
@@ -178,7 +181,7 @@ core.prototype.hideStartAnimate = function (callback) {
             callback();
         }
         core.dom.startPanel.style.opacity = opacityVal;
-    }, 30);
+    }, 20);
 }
 
 core.prototype.setStartProgressVal = function (val) {
@@ -321,36 +324,18 @@ core.prototype.resetStatus = function(hero, hard, floorId, maps) {
 
 }
 
-core.prototype.playGame = function () {
-    if (core.isPlaying()) {
-        return;
-    }
-    core.resetStatus(core.firstData.hero, core.firstData.hard, core.firstData.floorId,
-        core.initStatus.maps);
-
+core.prototype.startGame = function (hard, callback) {
     console.log('开始游戏');
 
-    // core.setFirstItem();
-    core.dom.floorNameLabel.innerHTML = core.status.maps[core.status.floorId].title;
-    core.statusBar.floor.innerHTML = core.status.maps[core.status.floorId].name;
-    core.updateStatusBar();
-    core.hideStartAnimate(function () {
-        /*
-        core.playSound('floor', 'mp3');
-        core.drawMap(core.status.floorId, function () {
-            core.hide(core.dom.floorMsgGroup, 10);
-            core.setHeroLoc('direction', core.status.hero.loc.direction);
-            core.setHeroLoc('x', core.status.hero.loc.x);
-            core.setHeroLoc('y', core.status.hero.loc.y);
-            core.drawHero(core.getHeroLoc('direction'), core.getHeroLoc('x'), core.getHeroLoc('y'), 'stop');
-            core.setHeroMoveTriggerInterval();
-        });
-        */
-        core.changeFloor(core.status.floorId, null, core.firstData.hero.loc, function() {
-            core.setHeroMoveTriggerInterval();
-        });
+    core.resetStatus(core.firstData.hero, hard, core.firstData.floorId,
+        core.initStatus.maps);
+
+    core.changeFloor(core.status.floorId, null, core.firstData.hero.loc, function() {
+        core.setHeroMoveTriggerInterval();
+        if (core.isset(callback)) callback();
     });
 }
+
 
 core.prototype.restart = function() {
 
@@ -364,7 +349,6 @@ core.prototype.restart = function() {
     });
 
     */
-    core.clearMap('all');
     core.showStartAnimate();
 }
 
@@ -692,7 +676,10 @@ core.prototype.onclick = function (x, y) {
 
     // 关于
     if (core.status.event.id == 'about') {
-        core.closePanel(false);
+        if (core.isPlaying())
+            core.closePanel(false);
+        else
+            core.showStartAnimate();
         return;
     }
 
@@ -2233,8 +2220,7 @@ core.prototype.drawText = function (contents, callback) {
             return;
         }
 
-        core.status.event.id = 'text';
-        core.status.event.data = {'list': contents, 'callback': callback};
+        core.status.event = {'id': 'text', 'data': {'list': contents, 'callback': callback}};
         core.lockControl();
 
         // wait the hero to stop
@@ -2253,7 +2239,10 @@ core.prototype.drawText = function (contents, callback) {
     }
 
     var data=core.status.event.data.list.shift();
-    core.drawTextBox(data.content, data.id);
+    if (typeof data == 'string')
+        core.drawTextBox(data);
+    else
+        core.drawTextBox(data.content, data.id);
     // core.drawTextBox(content);
 }
 
@@ -2484,6 +2473,11 @@ core.prototype.drawTextBox = function(content, id) {
 
 core.prototype.drawAbout = function() {
 
+    if (!core.isPlaying()) {
+        core.status.event = {'id': null, 'data': null};
+        core.dom.startPanel.style.display = 'none';
+    }
+    core.lockControl();
     core.status.event.id = 'about';
 
     core.clearMap('ui', 0, 0, 416, 416);
@@ -2732,17 +2726,20 @@ core.prototype.save = function(need) {
 }
 
 core.prototype.load = function (need) {
+
+    // 游戏开始前读档
+    if (!core.isPlaying()) {
+        core.status.event = {'id': 'load', 'data': null};
+        core.status.lockControl = true;
+        core.dom.startPanel.style.display = 'none';
+        var page = core.getLocalStorage('savePage', 0);
+        core.drawSLPanel(page);
+        return;
+    }
+
     if (!core.checkStatus('load', need))
         return;
     core.drawSLPanel(core.status.savePage);
-}
-
-core.prototype.startLoad = function() {
-    core.status.event = {'id': 'load', 'data': null};
-    core.status.lockControl = true;
-    core.dom.startPanel.style.display = 'none';
-    var page = core.getLocalStorage('savePage', 0);
-    core.drawSLPanel(page);
 }
 
 core.prototype.doSL = function (id, type) {
