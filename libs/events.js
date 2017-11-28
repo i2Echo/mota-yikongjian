@@ -210,8 +210,11 @@ events.prototype.decreaseHard = function() {
         core.drawTip("当前已是难度0，不能再降低难度了");
         return;
     }
-    core.showConfirmBox("本次操作可生命+" + (1100 - 100 * core.status.hard) + "，确定吗？", function () {
-        var add = 1100 - 100 * core.status.hard;
+    var add = 100, x=core.status.hard;
+    while (x<10) {
+        x++; add*=2;
+    }
+    core.showConfirmBox("本次操作可生命+" + add + "，确定吗？", function () {
         core.status.hero.hp += add;
         core.status.hard--;
         core.updateStatusBar();
