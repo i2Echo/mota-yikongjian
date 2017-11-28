@@ -792,8 +792,6 @@ core.prototype.onclick = function (x, y) {
             }
             if (y==6) {
                 core.showConfirmBox("你确定要从服务器加载存档吗？\n该操作将覆盖所有本地存档且不可逆！", function(){
-
-                    core.waiting("正在同步，请稍后...");
                     var id = prompt("请输入存档编号：");
                     if (id==null || id=="") {
                         core.syncSave(); return;
@@ -802,7 +800,53 @@ core.prototype.onclick = function (x, y) {
                     if (password==null || password=="") {
                         core.syncSave(); return;
                     }
-                    core.drawText("你的存档编号："+id+"\n你的存档密码："+password);
+                    core.waiting("正在同步，请稍后...");
+
+                    var formData = new FormData();
+                    formData.append('type', 'load');
+                    formData.append('id', id);
+                    formData.append('password', password);
+
+                    // send
+                    var xhr = new XMLHttpRequest();
+                    xhr.open("POST", "../sync.php");
+                    xhr.timeout = 1000;
+                    xhr.onload = function(e) {
+                        if (xhr.status==200) {
+                            // console.log("同步成功。");
+                            var response = JSON.parse(xhr.response);
+                            switch (response.code) {
+                                case 0:
+                                    // 成功
+                                    var data=response.msg;
+                                    console.log(data);
+                                    core.drawText("同步成功！\n你的本地所有存档均已被覆盖。");
+                                    break;
+                                case -1:
+                                    core.drawText("出错啦！\n存档编号"+id+"不存在！");
+                                    break;
+                                case -2:
+                                    core.drawText("出错啦！\n存档编号"+id+"不存在！");
+                                    break;
+                                default:
+                                    core.drawText("出错啦！\n无法从服务器同步存档。");
+                                    break;
+                            }
+
+                        }
+                        else {
+                            core.drawText("出错啦！\n无法从服务器同步存档。");
+                        }
+                    };
+                    xhr.ontimeout = function(e) {
+                        console.log(e);
+                        core.drawText("出错啦！\n无法从服务器同步存档。");
+                    }
+                    xhr.onerror = function(e) {
+                        console.log(e);
+                        core.drawText("出错啦！\n无法从服务器同步存档。");
+                    }
+                    xhr.send(formData);
                 }, function() {
                     core.syncSave();
                 })
