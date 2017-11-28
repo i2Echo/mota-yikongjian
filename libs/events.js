@@ -169,7 +169,7 @@ events.prototype.selectSettings = function (y) {
     }
     if (y==8) {
         // core.drawAbout();
-        core.cheat();
+        core.debug();
     }
     if (y == 9) core.closePanel();
     return;
