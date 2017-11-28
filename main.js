@@ -10,7 +10,7 @@ function main() {
         'startTopProgress': document.getElementById('startTopProgress'),
         'startTopLoadTips': document.getElementById('startTopLoadTips'),
         'startBackground': document.getElementById('startBackground'),
-        // 'startButtonGroup': document.getElementById('startButtonGroup'),
+        'startButtonGroup': document.getElementById('startButtonGroup'),
         'floorMsgGroup': document.getElementById('floorMsgGroup'),
         'versionLabel': document.getElementById('versionLabel'),
         'floorNameLabel': document.getElementById('floorNameLabel'),
@@ -138,10 +138,12 @@ window.onresize = function () {
 }
 
 main.dom.body.onkeydown = function(e) {
-	main.core.keyDown(e);
+    if (main.core.isPlaying())
+    	main.core.keyDown(e);
 }
 
 main.dom.body.onkeyup = function(e) {
+    if (main.core.isPlaying())
 	main.core.keyUp(e);
 }
 
@@ -178,29 +180,46 @@ main.dom.data.ontouchstart = function (e) {
 }
 
 main.statusBar.image.book.onclick = function () {
-    main.core.openBook(true);
+    if (main.core.isPlaying())
+        main.core.openBook(true);
 }
 
 main.statusBar.image.fly.onclick = function (e) {
-    main.core.useFly(true);
+    if (main.core.isPlaying())
+        main.core.useFly(true);
 }
 
 main.statusBar.image.toolbox.onclick = function (e) {
-    main.core.openToolbox(true);
+    if (main.core.isPlaying())
+        main.core.openToolbox(true);
 }
 
 main.statusBar.image.shop.onclick = function () {
-    main.core.selectShop(true);
+    if (main.core.isPlaying())
+        main.core.selectShop(true);
 }
 
 main.statusBar.image.save.onclick = function (e) {
-    main.core.save(true);
+    if (main.core.isPlaying())
+        main.core.save(true);
 }
 
 main.statusBar.image.load.onclick = function (e) {
-    main.core.load(true);
+    if (main.core.isPlaying())
+        main.core.load(true);
 }
 
 main.statusBar.image.settings.onclick = function (e) {
-    main.core.openSettings(true);
+    if (main.core.isPlaying())
+        main.core.openSettings(true);
 }
+
+main.dom.playGame.onclick = function () {
+    // main.core;
+
+}
+
+main.dom.loadGame.onclick = function() {
+    main.core.startLoad();
+}
+

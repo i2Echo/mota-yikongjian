@@ -141,19 +141,27 @@ core.prototype.init = function (dom, statusBar, canvas, images, sounds, coreData
 
     core.loader(function () {
         console.log(core.material);
-        core.playGame();
+        // core.playGame();
+        core.showStartAnimate(function() {});
     });
 }
 
 core.prototype.showStartAnimate = function (callback) {
+    core.dom.startPanel.style.opacity=1;
+    core.dom.startPanel.style.display="block";
+    core.dom.startTop.style.opacity=1;
+    core.dom.startTop.style.display="block";
+    core.dom.startButtonGroup.style.display = 'none';
+    core.status.played = false;
+    core.clearStatus();
     var opacityVal = 1;
     var startAnimate = window.setInterval(function () {
         opacityVal -= 0.03;
         if (opacityVal < 0) {
             clearInterval(startAnimate);
             core.dom.startTop.style.display = 'none';
-            core.playGame();
-            // core.dom.startButtonGroup.style.display = 'block';
+            // core.playGame();
+            core.dom.startButtonGroup.style.display = 'block';
             if (core.isset(callback)) callback();
         }
         core.dom.startTop.style.opacity = opacityVal;
@@ -277,6 +285,17 @@ core.prototype.isPlaying = function() {
     return false;
 }
 
+
+core.prototype.clearStatus = function() {
+    // 停止各个Timeout和Interval
+    for (var i in core.interval) {
+        clearInterval(core.interval[i]);
+    }
+    core.status = {};
+    core.clearStatusBar();
+    core.resize(main.dom.body.clientWidth, main.dom.body.clientHeight);
+}
+
 core.prototype.resetStatus = function(hero, hard, floorId, maps) {
 
     // 停止各个Timeout和Interval
@@ -334,6 +353,8 @@ core.prototype.playGame = function () {
 }
 
 core.prototype.restart = function() {
+
+    /*
     core.resetStatus(core.firstData.hero, core.firstData.hard, core.firstData.floorId,
         core.initStatus.maps);
 
@@ -341,6 +362,10 @@ core.prototype.restart = function() {
         core.drawTip('重新开始游戏');
         core.setHeroMoveTriggerInterval();
     });
+
+    */
+    core.clearMap('all');
+    core.showStartAnimate();
 }
 
 core.prototype.keyDown = function(e) {
@@ -636,6 +661,10 @@ core.prototype.onclick = function (x, y) {
         // 返回
         if (x>=10 && x<=12 && y==12) {
             core.closePanel(false);
+            if (!core.isPlaying()) {
+                core.showStartAnimate();
+            }
+            return;
         }
 
         var index=6*core.status.event.data+1;
@@ -2640,7 +2669,6 @@ core.prototype.showConfirmBox = function (text, yesCallback, noCallback) {
 
     core.fillText('ui', "确定", 208 - 38, top + bottom - 35, "#FFFFFF", "bold 17px Verdana");
     core.fillText('ui', "取消", 208 + 38, top + bottom - 35);
-
 }
 
 core.prototype.checkStatus = function (name, need, item, clearData) {
@@ -2709,6 +2737,14 @@ core.prototype.load = function (need) {
     core.drawSLPanel(core.status.savePage);
 }
 
+core.prototype.startLoad = function() {
+    core.status.event = {'id': 'load', 'data': null};
+    core.status.lockControl = true;
+    core.dom.startPanel.style.display = 'none';
+    var page = core.getLocalStorage('savePage', 0);
+    core.drawSLPanel(page);
+}
+
 core.prototype.doSL = function (id, type) {
     if (type=='save') {
         if (core.saveData("save"+id)) {
@@ -2764,11 +2800,15 @@ core.prototype.saveData = function(dataId) {
 }
 
 core.prototype.loadData = function (data, callback) {
-    core.updateTime();
     core.upload();
 
-    var totaltime = core.status.hero.time.totaltime;
-    var lasttime = core.clone(core.status.hero.time.lasttime);
+    var totaltime=null, lasttime = null;
+
+    if (core.isPlaying()) {
+        core.updateTime();
+        var totaltime = core.status.hero.time.totaltime;
+        var lasttime = core.clone(core.status.hero.time.lasttime);
+    }
 
     core.resetStatus(data.hero, data.hard, data.floorId,
         core.maps.load(data.maps));
@@ -2780,9 +2820,11 @@ core.prototype.loadData = function (data, callback) {
     }
 
     core.status.hero.time.starttime = new Date(core.status.hero.time.starttime);
-    if (totaltime>core.status.hero.time.totaltime)
+    if (core.isset(totaltime) && totaltime>core.status.hero.time.totaltime)
         core.status.hero.time.totaltime=totaltime;
-    core.status.hero.time.lasttime = lasttime;
+    if (core.isset(lasttime))
+        core.status.hero.time.lasttime = lasttime;
+    else core.status.hero.time.lasttime = new Date();
 
     core.events.afterLoadData(data);
 
@@ -3256,7 +3298,7 @@ core.prototype.drawSLPanel = function(page) {
             core.fillText('ui', '存档'+id, (2*i+1)*u, 35, '#FFFFFF', "bold 17px Verdana");
             core.strokeRect('ui', (2*i+1)*u-size/2, 50, size, size, '#FFFFFF', 2);
             if (core.isset(data) && core.isset(data.floorId)) {
-                core.drawThumbnail('ui', core.maps.load(data.maps, data.floorId).blocks, (2*i+1)*u-size/2, 50, size, data.hero.loc);
+                core.drawThumbnail('ui', core.maps.load(data.maps, data.floorId).blocks, (2*i+1)*u-size/2, 50, size, data.hero.loc, data.hero.id);
                 core.fillText('ui', core.formatDate(new Date(data.time)), (2*i+1)*u, 65+size, '#FFFFFF', '10px Verdana');
             }
             else {
@@ -3268,7 +3310,7 @@ core.prototype.drawSLPanel = function(page) {
             core.fillText('ui', '存档'+id, (2*i-5)*u, 230, '#FFFFFF', "bold 17px Verdana");
             core.strokeRect('ui', (2*i-5)*u-size/2, 245, size, size, '#FFFFFF', 2);
             if (core.isset(data) && core.isset(data.floorId)) {
-                core.drawThumbnail('ui', core.maps.load(data.maps, data.floorId).blocks, (2*i-5)*u-size/2, 245, size, data.hero.loc);
+                core.drawThumbnail('ui', core.maps.load(data.maps, data.floorId).blocks, (2*i-5)*u-size/2, 245, size, data.hero.loc, data.hero.id);
                 core.fillText('ui', core.formatDate(new Date(data.time)), (2*i-5)*u, 260+size, '#FFFFFF', '10px Verdana');
             }
             else {
@@ -3280,7 +3322,7 @@ core.prototype.drawSLPanel = function(page) {
     core.drawPagination(page+1, 30);
 }
 
-core.prototype.drawThumbnail = function(canvas, blocks, x, y, size, heroLoc) {
+core.prototype.drawThumbnail = function(canvas, blocks, x, y, size, heroLoc, heroId) {
     core.clearMap(canvas, x, y, size, size);
     var persize = size/13;
     for (var i=0;i<13;i++) {
@@ -3301,7 +3343,8 @@ core.prototype.drawThumbnail = function(canvas, blocks, x, y, size, heroLoc) {
         }
     }
     if (core.isset(heroLoc)) {
-        var heroIcon = core.material.icons.heros[core.status.hero.id][heroLoc.direction];
+        var id = core.isset(heroId)?heroId:core.status.hero.id;
+        var heroIcon = core.material.icons.heros[id][heroLoc.direction];
         core.canvas[canvas].drawImage(core.material.images.heros, heroIcon.loc['stop'] * heroIcon.size, heroIcon.loc.iconLoc * heroIcon.size, heroIcon.size, heroIcon.size, x+persize*heroLoc.x, y+persize*heroLoc.y, persize, persize);
     }
 }
@@ -3316,6 +3359,15 @@ core.prototype.getStatus = function (statusName) {
     if (core.isset(core.status.hero[statusName])) {
         return core.status.hero[statusName];
     }
+}
+
+core.prototype.clearStatusBar = function() {
+    var statusList = ['floor', 'hp', 'atk', 'def', /*'mdef',*/ 'money', 'experience', 'yellowKey', 'blueKey', 'redKey', 'hard'];
+    statusList.forEach(function (e) {
+        core.statusBar[e].innerHTML = "";
+    });
+    core.statusBar.image.book.style.opacity = 0.3;
+    core.statusBar.image.fly.style.opacity = 0.3;
 }
 
 core.prototype.updateStatusBar = function () {
