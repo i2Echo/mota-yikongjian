@@ -763,7 +763,6 @@ core.prototype.onclick = function (x, y) {
 
                     var formData = new FormData();
                     formData.append('type', 'save');
-                    formData.append('time', new Date().getTime());
                     var saves = [];
                     for (var i=1;i<=180;i++) {
                         var data = core.getLocalStorage("save"+i, null);
@@ -780,10 +779,17 @@ core.prototype.onclick = function (x, y) {
                     xhr.timeout = 1000;
                     xhr.onload = function(e) {
                         if (xhr.status==200) {
-                            console.log("同步成功。");
+                            // console.log("同步成功。");
+                            var response = JSON.parse(xhr.response);
+                            if (response.code<0) {
+                                core.drawText("出错啦！\n无法同步存档到服务器。");
+                            }
+                            else {
+                                core.drawText("同步成功！\n\n您的存档编号： "+response.code+"\n您的存档密码： "+response.msg+"\n\n请牢记以上两个信息（如截图等），在从服务器\n同步存档时使用。")
+                            }
                         }
                         else {
-                            core.drawText("出错啦！\n无法同步存档到服务器");
+                            core.drawText("出错啦！\n无法同步存档到服务器。");
                         }
                     };
                     xhr.ontimeout = function(e) {
