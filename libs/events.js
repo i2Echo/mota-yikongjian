@@ -168,7 +168,8 @@ events.prototype.selectSettings = function (y) {
         });
     }
     if (y==8) {
-        core.drawAbout();
+        // core.drawAbout();
+        core.cheat();
     }
     if (y == 9) core.closePanel();
     return;
