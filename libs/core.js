@@ -818,7 +818,7 @@ core.prototype.onclick = function (x, y) {
                             switch (response.code) {
                                 case 0:
                                     // 成功
-                                    var data=response.msg;
+                                    var data=JSON.decode(response.msg);
                                     console.log(data);
                                     core.drawText("同步成功！\n你的本地所有存档均已被覆盖。");
                                     break;
@@ -826,7 +826,7 @@ core.prototype.onclick = function (x, y) {
                                     core.drawText("出错啦！\n存档编号"+id+"不存在！");
                                     break;
                                 case -2:
-                                    core.drawText("出错啦！\n存档编号"+id+"不存在！");
+                                    core.drawText("出错啦！\n存档密码错误！");
                                     break;
                                 default:
                                     core.drawText("出错啦！\n无法从服务器同步存档。");
