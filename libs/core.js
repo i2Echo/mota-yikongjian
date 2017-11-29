@@ -1042,6 +1042,7 @@ core.prototype.automaticRoute = function (destX, destY) {
         for (var direction in scan) {
             var nx = nowX + scan[direction].x;
             var ny = nowY + scan[direction].y;
+            if (nx<0 || nx>12 || ny<0 || ny>12) continue;
             var nid = 13 * nx + ny;
 
             if (core.isset(route[nid])) continue;
@@ -1239,7 +1240,8 @@ core.prototype.setHeroMoveTriggerInterval = function () {
                         core.status.autoHeroMove = false;
                         core.status.destStep = 0;
                         core.status.movedStep = 0;
-                        core.stopHero();
+                        // core.stopHero();
+                        core.stopAutomaticRoute();
                     }
                 }
                 else {

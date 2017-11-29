@@ -357,7 +357,7 @@ maps.prototype.init = function () {
         for (var i = 0; i < 13; i++) {
             for (var j = 0; j < 13; j++) {
                 var id = map[i][j];
-                var block = this.getBlock(f, j, i, id);
+                var block = this.getBlock(floorId, f, j, i, id);
                 if (block!=null) blocks.push(block);
             }
         }
@@ -366,12 +366,12 @@ maps.prototype.init = function () {
     }
 }
 
-maps.prototype.getBlock = function (f, x, y, id) {
+maps.prototype.getBlock = function (floorId, f, x, y, id) {
     var tmp = {'x': x, 'y': y, 'id': id};
 
     // 16F的事件处理
     if (id == 0) {
-        if (f==16 && x==6 && y==2) {
+        if (floorId=="MT16" && x==6 && y==2) {
             tmp.event = {'cls': 'terrains', 'id': 'ground', 'noPass': false, 'trigger': 'blockEvent'};
         }
     }
@@ -463,9 +463,9 @@ maps.prototype.getBlock = function (f, x, y, id) {
     // 传送门
     if (id==89) {
         var toFloor = 0, toX = 0, toY = 0;
-        if (f == 17) {toFloor = 21; toX = 9; toY = 9;}
-        else if (f == 21) {toFloor = 17; toX = 11; toY = 5;}
-        else if (f == 19) {toFloor = 20; toX = 6; toY = 9;}
+        if (floorId == "MT17") {toFloor = 21; toX = 9; toY = 9;}
+        else if (floorId == "MT21") {toFloor = 17; toX = 11; toY = 5;}
+        else if (floorId == "MT19") {toFloor = 20; toX = 6; toY = 9;}
         tmp.event = {
             'cls': 'animates', 'id': 'portal', 'trigger': 'changeFloor', 'noPass': false, 'animate': 4,
             'data': {'floorId': 'MT' + toFloor, 'heroLoc': {'direction': 'up', 'x': toX, 'y': toY}}
@@ -622,7 +622,7 @@ maps.prototype.load = function (data, floorId) {
     for (var i = 0; i < 13; i++) {
         for (var j = 0; j < 13; j++) {
             var id = x.blocks[i][j];
-            var block = this.getBlock(x.name, i, j, id);
+            var block = this.getBlock(x.floorId, x.name, i, j, id);
             if (block!=null) blocks.push(block);
         }
     }

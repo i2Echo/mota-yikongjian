@@ -32,7 +32,7 @@ function main() {
     // console.log(this.dom);
     this.loadList = [
         'items.min', 'icons.min', 'maps.min', 'enemys.min', 'events.min',
-        'npcs.min', 'data.min', 'core.min'
+        'npcs.min', 'data.min', 'core'
     ];
     // console.log('加载js文件列表加载完成' + this.loadList);
     this.images = [
