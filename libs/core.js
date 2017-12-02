@@ -471,7 +471,7 @@ core.prototype.keyUp = function(e) {
 }
 
 
-core.prototype.onclick = function (x, y) {
+core.prototype.onclick = function (x, y, stepPostfix) {
     // console.log("Click: (" + x + "," + y + ")");
 
     // 非游戏屏幕内
@@ -479,7 +479,7 @@ core.prototype.onclick = function (x, y) {
 
     // 寻路
     if (!core.status.lockControl) {
-        core.setAutomaticRoute(x, y);
+        core.setAutomaticRoute(x, y, stepPostfix);
         return;
     }
 
@@ -883,6 +883,15 @@ core.prototype.onclick = function (x, y) {
 
 }
 
+core.prototype.onmousewheel = function (direct) {
+    // 楼层飞行器
+    if (core.status.event.id == 'fly') {
+        if (direct==-1) core.drawFly(core.status.event.data-1);
+        if (direct==1) core.drawFly(core.status.event.data+1);
+        return;
+    }
+}
+
 /**
  * 初始化 end
  */
@@ -904,10 +913,26 @@ core.prototype.stopAutomaticRoute = function () {
     core.status.automaticRouted = false;
     core.status.autoStepRoutes = [];
     core.status.automaticRoutingTemp = {'destX': 0, 'destY': 0, 'moveStep': []};
-    core.canvas.ui.clearRect(0, 0, 416, 416);
+    if (typeof(core.status.moveStepBeforeStop)=="undefined" || core.status.moveStepBeforeStop.length==0)
+        core.canvas.ui.clearRect(0, 0, 416, 416);
 }
 
-core.prototype.setAutomaticRoute = function (destX, destY) {
+core.prototype.continueAutomaticRoute = function () {
+    //此函数只应由events.afterOpenDoor和events.afterBattle调用
+    var moveStep = core.status.moveStepBeforeStop;
+    core.status.moveStepBeforeStop = [];
+    if(moveStep.length===0)return;
+    if(moveStep.length===1 && moveStep[0].step===1)return;
+    core.status.automaticRouting = true;
+    core.setAutoHeroMove(moveStep);
+}
+
+core.prototype.clearContinueAutomaticRoute = function () {
+    core.canvas.ui.clearRect(0, 0, 416, 416);
+    core.status.moveStepBeforeStop=[];
+}
+
+core.prototype.setAutomaticRoute = function (destX, destY, stepPostfix) {
     if (!core.status.played || core.status.lockControl) {
         return;
     }
@@ -936,6 +961,7 @@ core.prototype.setAutomaticRoute = function (destX, destY) {
         core.canvas.ui.clearRect(0, 0, 416, 416);
         return false;
     }
+    moveStep=moveStep.concat(stepPostfix);
     core.status.automaticRoutingTemp.destX = destX;
     core.status.automaticRoutingTemp.destY = destY;
     core.canvas.ui.save();
@@ -1028,33 +1054,43 @@ core.prototype.automaticRoute = function (destX, destY) {
         'right': {'x': 1, 'y': 0}
     };
     var queue = [];
+    var nowDeep = 0;
     var route = [];
     var ans = []
-
+    
     if (destX == startX && destY == startY) return false;
     queue.push(13 * startX + startY);
+    queue.push(-1);
     route[13 * startX + startY] = '';
-
-    while (queue.length != 0) {
+    
+    while (queue.length != 1) {
         var f = queue.shift();
+        if (f===-1) {nowDeep+=1;queue.push(-1);continue;}
+        var deep = ~~(f/169);
+        if (deep!==nowDeep) {queue.push(f);continue;}
+        f=f%169;
         var nowX = parseInt(f / 13), nowY = f % 13;
-
+    
         for (var direction in scan) {
+        
             var nx = nowX + scan[direction].x;
             var ny = nowY + scan[direction].y;
             if (nx<0 || nx>12 || ny<0 || ny>12) continue;
             var nid = 13 * nx + ny;
-
+    
             if (core.isset(route[nid])) continue;
-
+    
             if (nx == destX && ny == destY) {
                 route[nid] = direction;
                 break;
             }
             if (core.noPassExists(nx, ny))
                 continue;
+            var deepAdd=1;
+            if (core.idEndWith(nx,ny,'lavaNet')) deepAdd=100;
+            if (core.idEndWith(nx,ny,'Potion')) deepAdd=20;
             route[nid] = direction;
-            queue.push(nid);
+            queue.push(169*(nowDeep+deepAdd)+nid);
         }
         if (core.isset(route[13 * destX + destY])) break;
     }
@@ -1241,6 +1277,7 @@ core.prototype.setHeroMoveTriggerInterval = function () {
                         core.status.destStep = 0;
                         core.status.movedStep = 0;
                         // core.stopHero();
+                        core.status.moveStepBeforeStop=[];
                         core.stopAutomaticRoute();
                     }
                 }
@@ -1328,6 +1365,10 @@ core.prototype.openDoor = function (id, x, y, needKey, callback) {
     // 是否存在门
     if (!core.terrainExists(x, y, id)) return;
     // core.lockControl();
+    if (typeof(core.status.moveStepBeforeStop)=="undefined" || core.status.moveStepBeforeStop.length==0) {
+        core.status.moveStepBeforeStop=core.status.autoStepRoutes.slice(core.status.autoStep-1,core.status.autoStepRoutes.length);
+        if (core.status.moveStepBeforeStop.length>=1)core.status.moveStepBeforeStop[0].step-=core.status.movedStep;
+    }
     core.stopHero();
     core.stopAutomaticRoute();
     if (needKey) {
@@ -1336,6 +1377,7 @@ core.prototype.openDoor = function (id, x, y, needKey, callback) {
             if (key != "specialKey")
                 core.drawTip("你没有" + core.material.items[key].name + "！", "normal");
             else core.drawTip("无法开启此门。");
+            core.clearContinueAutomaticRoute();
             return;
         }
     }
@@ -1348,6 +1390,7 @@ core.prototype.openDoor = function (id, x, y, needKey, callback) {
         if (state == 4) {
             clearInterval(core.interval.openDoorAnimate);
             core.removeBlock('event', x, y);
+            core.events.afterOpenDoor(id);
             if (core.isset(callback)) callback();
             return;
         }
@@ -1357,12 +1400,17 @@ core.prototype.openDoor = function (id, x, y, needKey, callback) {
 }
 
 core.prototype.battle = function (id, x, y, callback) {
+    if (typeof(core.status.moveStepBeforeStop)=="undefined" || core.status.moveStepBeforeStop.length==0) {
+        core.status.moveStepBeforeStop=core.status.autoStepRoutes.slice(core.status.autoStep-1,core.status.autoStepRoutes.length);
+        if (core.status.moveStepBeforeStop.length>=1)core.status.moveStepBeforeStop[0].step-=core.status.movedStep;
+    }
     core.stopHero();
     core.stopAutomaticRoute();
 
     var damage = core.getDamage(id);
     if (damage >= core.status.hero.hp) {
         core.drawTip("你打不过此怪物！");
+        core.clearContinueAutomaticRoute();
         return;
     }
     core.playSound('attack', 'ogg');
@@ -1776,6 +1824,17 @@ core.prototype.blockExists = function (x, y) {
     for (var b = 0; b < mapBlocks.length; b++) {
         if (mapBlocks[b].x == x && mapBlocks[b].y == y) {
             return (mapBlocks[b].event && mapBlocks[b].event.noPass) || (mapBlocks[b].bg && mapBlocks[b].bg.noPass);
+        }
+    }
+    return false;
+}
+
+core.prototype.idEndWith = function (x, y, idStr) {
+    var blocks = core.status.thisMap.blocks;
+    for (var n = 0; n < blocks.length; n++) {
+        if (blocks[n].x == x && blocks[n].y == y && core.isset(blocks[n].event)) {
+            var id = blocks[n].event.id;
+            return id.substring(id.length-idStr.length)==idStr;
         }
     }
     return false;

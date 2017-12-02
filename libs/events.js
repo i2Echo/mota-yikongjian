@@ -272,13 +272,28 @@ events.prototype.afterBattle = function(enemyId) {
                     {'content': '啊，我怎么被封印了！\n能量只剩下一成了！', 'id': 'fairy'}
                 ]);
                 // core.drawTip("触发仙子封印");
+                core.clearContinueAutomaticRoute();
+                return;
             }
         }
         // 打败仙子
         if (enemyId == 'fairy') {
             core.events.win();
+            core.clearContinueAutomaticRoute();
+            return;
         }
     }
+
+
+    //继续行走
+    core.continueAutomaticRoute();
+}
+
+/****** 开完门 ******/
+events.prototype.afterOpenDoor = function(doorId) {
+
+    //继续行走
+    core.continueAutomaticRoute();
 }
 
 /****** 经过路障 ******/

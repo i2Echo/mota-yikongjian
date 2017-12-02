@@ -31,8 +31,8 @@ function main() {
     // console.log('加载游戏容器和开始界面dom对象完成 如下');
     // console.log(this.dom);
     this.loadList = [
-        'items.min', 'icons.min', 'maps.min', 'enemys.min', 'events.min',
-        'npcs.min', 'data.min', 'core'
+        'items', 'icons', 'maps', 'enemys', 'events',
+        'npcs', 'data', 'core', 'ui'
     ];
     // console.log('加载js文件列表加载完成' + this.loadList);
     this.images = [
@@ -73,6 +73,7 @@ function main() {
     // console.log('存储实例变量已声明');
     this.canvas = {};
     // console.log('存储canvas变量已声明');
+    this.ui={};//存放与游戏数据无关的ui变量和函数
     //console.log('初始数据已声明');
 }
 
@@ -90,7 +91,7 @@ main.prototype.init = function () {
             // end with -min
             if (name.indexOf(".min")==name.length-4)
                 name=name.substring(0, name.length-4);
-            if (name === 'core') {
+            if (name === 'core' || name === 'ui') {
                 continue;
             }
             main[name].init(main.dom);
@@ -100,6 +101,7 @@ main.prototype.init = function () {
         main.core.init(main.dom, main.statusBar, main.canvas, main.images, main.sounds, coreData);
         //console.log('core函数对象初始化完成');
         main.core.resize(main.dom.body.clientWidth, main.dom.body.clientHeight);
+        main.ui.init();
         //console.log('main函数对象初始化完成');
     });
 }
@@ -182,7 +184,20 @@ main.dom.data.onmousedown = function (e) {
     var loc = main.core.getClickLoc(e.clientX, e.clientY);
     if (loc==null) return;
     var x = parseInt(loc.x / loc.size), y = parseInt(loc.y / loc.size);
-    main.core.onclick(x, y);
+    //main.core.onclick(x, y, []);
+    main.ui.ondown(x,y);
+}
+
+main.dom.data.onmousemove = function (e) {
+    e.stopPropagation();
+    var loc = main.core.getClickLoc(e.clientX, e.clientY);
+    if (loc==null) return;
+    var x = parseInt(loc.x / loc.size), y = parseInt(loc.y / loc.size);
+    main.ui.onmove(x,y);
+}
+
+main.dom.data.onmouseup = function () {
+    main.ui.onup();
 }
 
 main.dom.data.ontouchstart = function (e) {
@@ -190,7 +205,20 @@ main.dom.data.ontouchstart = function (e) {
     var loc = main.core.getClickLoc(e.targetTouches[0].clientX, e.targetTouches[0].clientY);
     if (loc==null) return;
     var x = parseInt(loc.x / loc.size), y = parseInt(loc.y / loc.size);
-    main.core.onclick(x, y);
+    //main.core.onclick(x, y, []);
+    main.ui.ondown(x,y);
+}
+
+main.dom.data.ontouchmove = function (e) {
+    e.preventDefault();
+    var loc = main.core.getClickLoc(e.targetTouches[0].clientX, e.targetTouches[0].clientY);
+    if (loc==null) return;
+    var x = parseInt(loc.x / loc.size), y = parseInt(loc.y / loc.size);
+    main.ui.onmove(x,y);
+}
+
+main.dom.data.ontouchend = function () {
+    main.ui.onup();
 }
 
 main.statusBar.image.book.onclick = function () {
