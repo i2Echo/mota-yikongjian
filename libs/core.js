@@ -366,88 +366,126 @@ core.prototype.restart = function() {
 
 
 /////////// 键盘、鼠标事件相关 ///////////
+core.prototype.onkeyDown = function(e) {
+    if (!core.isset(core.status.holdingKeys))core.status.holdingKeys=[];
+    var isArrow={37:true,38:true,39:true,40:true}[e.keyCode]
+    if(isArrow){
+        for(var ii =0;ii<core.status.holdingKeys.length;ii++){
+            if (core.status.holdingKeys[ii]===e.keyCode){
+                return;
+            }
+        }
+        core.status.holdingKeys.push(e.keyCode);
+        core.pressKey(e.keyCode);
+    } else {
+        core.keyDown(e.keyCode);
+    }
+}
 
-core.prototype.keyDown = function(e) {
-	if(!core.status.played) {
-		return;
-	}
-	if(core.status.automaticRouting || core.status.automaticRouted) {
-		core.stopAutomaticRoute();
-	}
-	if (core.status.lockControl) {
+core.prototype.onkeyUp = function(e) {
+    var isArrow={37:true,38:true,39:true,40:true}[e.keyCode]
+    if(isArrow){
+        for(var ii =0;ii<core.status.holdingKeys.length;ii++){
+            if (core.status.holdingKeys[ii]===e.keyCode){
+                core.status.holdingKeys= core.status.holdingKeys.slice(0,ii).concat(core.status.holdingKeys.slice(ii+1));
+                if (ii === core.status.holdingKeys.length && core.status.holdingKeys.length!==0)core.pressKey(core.status.holdingKeys.slice(-1)[0]);
+                break;
+            }
+        }
+        core.stopHero();
+    } else {
+        core.keyUp(e.keyCode);
+    }
+}
+
+core.prototype.pressKey = function (keyCode) {
+    if (keyCode === core.status.holdingKeys.slice(-1)[0]) {
+        core.keyDown(keyCode);
+        window.setTimeout(function(){core.pressKey(keyCode);},30);
+    }
+}
+
+core.prototype.keyDown = function(keyCode) {
+    if(!core.status.played) {
+        return;
+    }
+    if(core.status.automaticRouting || core.status.automaticRouted) {
+        core.stopAutomaticRoute();
+    }
+    if (core.status.lockControl) {
         if (core.status.event.id == 'book') {
-            if (e.keyCode==37) core.ui.drawEnemyBook(core.status.event.data - 1);
-            else if (e.keyCode==39) core.ui.drawEnemyBook(core.status.event.data + 1);
+            if (keyCode==37) core.ui.drawEnemyBook(core.status.event.data - 1);
+            else if (keyCode==39) core.ui.drawEnemyBook(core.status.event.data + 1);
             return;
         }
         if (core.status.event.id == 'fly') {
-            if (e.keyCode==38) core.ui.drawFly(core.status.event.data+1);
-            else if (e.keyCode==40) core.ui.drawFly(core.status.event.data-1);
+            if (keyCode==38) core.ui.drawFly(core.status.event.data+1);
+            else if (keyCode==40) core.ui.drawFly(core.status.event.data-1);
             return;
         }
         if (core.status.event.id == 'save' || core.status.event.id == 'load') {
-            if (e.keyCode==37) core.ui.drawSLPanel(core.status.event.data-1);
-            else if (e.keyCode==39) core.ui.drawSLPanel(core.status.event.data+1);
+            if (keyCode==37) core.ui.drawSLPanel(core.status.event.data-1);
+            else if (keyCode==39) core.ui.drawSLPanel(core.status.event.data+1);
             return;
         }
-	    return;
+        return;
     }
-	switch(e.keyCode) {
-		case 37:
-			core.moveHero('left');
-		break;
-		case 38:
-			core.moveHero('up');
-		break;
-		case 39:
-			core.moveHero('right');
-		break;
-		case 40:
-			core.moveHero('down');
-		break;
-	}
+    switch(keyCode) {
+        case 37:
+            core.moveHero('left');
+        break;
+        case 38:
+            core.moveHero('up');
+        break;
+        case 39:
+            core.moveHero('right');
+        break;
+        case 40:
+            core.moveHero('down');
+        break;
+    }
 }
 
-core.prototype.keyUp = function(e) {
-	if(!core.status.played) {
-		return;
-	}
+core.prototype.keyUp = function(keyCode) {
+    if(!core.status.played) {
+        return;
+    }
 
-	if (core.status.lockControl) {
-        if (core.status.event.id == 'book' && (e.keyCode==27 || e.keyCode==88))
+    if (core.status.lockControl) {
+        if (core.status.event.id == 'book' && (keyCode==27 || keyCode==88))
             core.ui.closePanel(true);
-	    if (core.status.event.id == 'fly' && (e.keyCode==71 || e.keyCode==27))
-	        core.ui.closePanel();
-	    if (core.status.event.id == 'fly' && e.keyCode==13) {
+        if (core.status.event.id == 'fly' && (keyCode==71 || keyCode==27))
+            core.ui.closePanel();
+        if (core.status.event.id == 'fly' && keyCode==13) {
             var index=core.status.hero.flyRange.indexOf(core.status.floorId);
             var stair=core.status.event.data<index?"upFloor":"downFloor";
             var floorId=core.status.event.data;
             core.ui.closePanel();
             core.changeFloor(core.status.hero.flyRange[floorId], stair);
         }
-	    if (core.status.event.id == 'save' && (e.keyCode==83 || e.keyCode==27))
-	        core.ui.closePanel();
-        if (core.status.event.id == 'load' && (e.keyCode==76 || e.keyCode==27))
+        if (core.status.event.id == 'save' && (keyCode==83 || keyCode==27))
             core.ui.closePanel();
-	    if ((core.status.event.id == 'shop' || core.status.event.id == 'settings'
-            || core.status.event.id == 'selectShop') && e.keyCode==27)
-	        core.ui.closePanel();
-	    if (core.status.event.id == 'selectShop' && e.keyCode==75)
-	        core.ui.closePanel();
-        if (core.status.event.id == 'toolbox' && (e.keyCode==84 || e.keyCode==27))
+        if (core.status.event.id == 'load' && (keyCode==76 || keyCode==27))
             core.ui.closePanel();
-        if (core.status.event.id == 'about' && (e.keyCode==13 || e.keyCode==32))
+        if ((core.status.event.id == 'shop' || core.status.event.id == 'settings'
+            || core.status.event.id == 'selectShop') && keyCode==27)
             core.ui.closePanel();
-        if (core.status.event.id == 'text' && (e.keyCode==13 || e.keyCode==32))
+        if (core.status.event.id == 'selectShop' && keyCode==75)
+            core.ui.closePanel();
+        if (core.status.event.id == 'toolbox' && (keyCode==84 || keyCode==27))
+            core.ui.closePanel();
+        if (core.status.event.id == 'about' && (keyCode==13 || keyCode==32))
+            core.ui.closePanel();
+        if (core.status.event.id == 'text' && (keyCode==13 || keyCode==32))
             core.drawText();
         if (core.status.event.id == 'npc' && core.isset(core.status.event.data.current)
-            && core.status.event.data.current.action=='text'  && (e.keyCode==13 || e.keyCode==32))
+            && core.status.event.data.current.action=='text'  && (keyCode==13 || keyCode==32))
             core.npcAction();
 
-	    return;
+        return;
     }
 
-    switch (e.keyCode) {
+    switch (keyCode) {
         case 27: // ESC
             core.ui.drawSettings(true);
             break;
@@ -841,7 +879,7 @@ core.prototype.setAutomaticRoute = function (destX, destY, stepPostfix) {
         core.stopAutomaticRoute();
         return;
     }
-    if (destX == core.status.hero.loc.x && destY == core.status.hero.loc.y) {
+    if (destX == core.status.hero.loc.x && destY == core.status.hero.loc.y && stepPostfix.length==0) {
         core.turnHero();
         return;
     }
@@ -859,8 +897,12 @@ core.prototype.setAutomaticRoute = function (destX, destY, stepPostfix) {
     var moveStep;
     core.status.automaticRoutingTemp = {'destX': 0, 'destY': 0, 'moveStep': []};
     if (!(moveStep = core.automaticRoute(destX, destY))) {
-        core.canvas.ui.clearRect(0, 0, 416, 416);
-        return false;
+        if (destX == core.status.hero.loc.x && destY == core.status.hero.loc.y){
+            moveStep=[];
+        } else {
+            core.canvas.ui.clearRect(0, 0, 416, 416);
+            return false;
+        }
     }
     moveStep=moveStep.concat(stepPostfix);
     core.status.automaticRoutingTemp.destX = destX;
@@ -2005,15 +2047,15 @@ core.prototype.addItem = function (itemId, itemNum) {
 
 /*
 core.prototype.removeBlock = function(itemX, itemY) {
-   var mapBlocks = core.status.thisMap.blocks;
-   for(var b = 0;b < mapBlocks.length;b++) {
-       if(mapBlocks[b].x == itemX && mapBlocks[b].y == itemY) {
-           // delete mapBlocks[b].event;
-           // mapBlocks[b]
-           core.status.thisMap.blocks.splice(b,1);
-           break;
-       }
-   }
+var mapBlocks = core.status.thisMap.blocks;
+for(var b = 0;b < mapBlocks.length;b++) {
+    if(mapBlocks[b].x == itemX && mapBlocks[b].y == itemY) {
+        // delete mapBlocks[b].event;
+        // mapBlocks[b]
+        core.status.thisMap.blocks.splice(b,1);
+        break;
+    }
+}
 }
 */
 
@@ -2142,8 +2184,8 @@ core.prototype.drawText = function (contents, callback) {
 /////////// 地图相关 END ///////////
 
 /*
- * NPC事件
- */
+* NPC事件
+*/
 core.prototype.visitNpc = function (npcId, x, y, callback) {
 
     // 正在移动中...
@@ -2761,7 +2803,7 @@ core.prototype.resize = function(clientWidth, clientHeight) {
 
     // 横屏状态下，默认StatusBar宽度（不计算边框）
     var statusBarWidth = 129;
-	
+    
     //适配宽度阈值， 6为两倍的边框宽度
     var ADAPT_WIDTH = canvasWidth + 6;
 

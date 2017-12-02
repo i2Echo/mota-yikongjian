@@ -154,13 +154,13 @@ window.onresize = function () {
 
 main.dom.body.onkeydown = function(e) {
     if (main.core.isPlaying())
-    	main.core.keyDown(e);
+    	main.core.onkeyDown(e);
 }
 
 main.dom.body.onkeyup = function(e) {
     try {
         if (main.core.isPlaying())
-            main.core.keyUp(e);
+            main.core.onkeyUp(e);
     } catch (e) {}
 }
 
