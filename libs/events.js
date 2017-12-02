@@ -32,17 +32,17 @@ events.prototype.init = function () {
                 callback();
         },
         'openShop': function (data, core, callback) {
-            this.openShop(data.event.shopid);
+            core.ui.drawShop(data.event.shopid);
             if (core.isset(callback))
                 callback();
         },
         'passNet': function (data, core, callback) {
-            this.passNet(data);
+            core.events.passNet(data);
             if (core.isset(callback))
                 callback();
         },
         'blockEvent': function (data, core, callback) {
-            this.blockEvent(data);
+            core.events.blockEvent(data);
             if (core.isset(callback)) callback();
         }
     }

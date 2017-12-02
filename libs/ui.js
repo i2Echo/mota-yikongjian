@@ -213,12 +213,14 @@ ui.prototype.drawSelectShop = function (need) {
 ui.prototype.drawShop = function (id) {
     var shop = core.status.shops[id];
     // 正在移动中...
+
     if (!core.status.heroStop) {
         setTimeout(function () {
-            core.drawShop(id);
+            core.ui.drawShop(id);
         }, 30);
         return;
     }
+
     core.status.event.data = shop;
     core.status.event.id = 'shop';
     core.lockControl();
