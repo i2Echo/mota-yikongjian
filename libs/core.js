@@ -879,7 +879,7 @@ core.prototype.setAutomaticRoute = function (destX, destY, stepPostfix) {
         core.stopAutomaticRoute();
         return;
     }
-    if (destX == core.status.hero.loc.x && destY == core.status.hero.loc.y) {
+    if (destX == core.status.hero.loc.x && destY == core.status.hero.loc.y && stepPostfix.length==0) {
         core.turnHero();
         return;
     }
@@ -897,8 +897,12 @@ core.prototype.setAutomaticRoute = function (destX, destY, stepPostfix) {
     var moveStep;
     core.status.automaticRoutingTemp = {'destX': 0, 'destY': 0, 'moveStep': []};
     if (!(moveStep = core.automaticRoute(destX, destY))) {
-        core.canvas.ui.clearRect(0, 0, 416, 416);
-        return false;
+        if (destX == core.status.hero.loc.x && destY == core.status.hero.loc.y){
+            moveStep=[];
+        } else {
+            core.canvas.ui.clearRect(0, 0, 416, 416);
+            return false;
+        }
     }
     moveStep=moveStep.concat(stepPostfix);
     core.status.automaticRoutingTemp.destX = destX;
