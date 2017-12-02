@@ -32,17 +32,17 @@ events.prototype.init = function () {
                 callback();
         },
         'openShop': function (data, core, callback) {
-            core.openShop(data.event.shopid);
+            this.openShop(data.event.shopid);
             if (core.isset(callback))
                 callback();
         },
         'passNet': function (data, core, callback) {
-            core.events.passNet(data);
+            this.passNet(data);
             if (core.isset(callback))
                 callback();
         },
         'blockEvent': function (data, core, callback) {
-            core.events.blockEvent(data);
+            this.blockEvent(data);
             if (core.isset(callback)) callback();
         }
     }
@@ -57,6 +57,10 @@ events.prototype.getEvents = function (eventName) {
 
 main.instance.events = new events();
 
+/**
+ * 游戏开始事件
+ * @param hard 难度
+ */
 events.prototype.startGame = function (hard) {
 
     core.hideStartAnimate(function() {
@@ -80,6 +84,75 @@ events.prototype.startGame = function (hard) {
         });
     })
 }
+
+////// 走到某位置时触发事件 //////
+events.prototype.blockEvent = function (data) {
+
+    if (core.status.floorId=='MT16' && data.x==6 && data.y==2) {
+        core.waitHeroToStop(function (){
+            // 和魔王对话
+            core.drawText([
+                {'content': '冥灵魔王？你不是已经被我杀了吗？\n为什么会出现在这里？？', 'id': 'hero'},
+                {'content': '因为...这里位于魔塔的另一个位面。\n大多数情况下，塔内死亡的生物都会回归这里。', 'id': 'vampire'},
+                {'content': '你的意思是说，我现在已经死了？', 'id': 'hero'},
+                {'content': '是的，能到达这里的，\n除了可以掌控位面的高智慧生物以外，只有\n亡灵。', 'id': 'vampire'},
+                {'content': '呵，既然，我的生命已经不复存在。\n我已经没有什么好怕的了。\n大魔头，我们冤家路窄，居然又见面了，\n决斗吧！', 'id': 'hero'},
+                {'content': '你似乎还没明白。。。', 'id': 'vampire'},
+                {'content': '明白什么？', 'id': 'hero'},
+                {'content': '诶，算了，决一死战吧。', 'id': 'vampire'},
+            ], function() {
+                core.removeBlock('data', data.x, data.y);
+            })
+        });
+        return;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+/////////////////// onclick事件处理 ///////////////////
+
+events.prototype.clickSettings = function(x,y) {
+    if (y == 3) {
+        if (core.musicStatus.isIOS) {
+            core.drawTip("iOS设备不支持播放音乐");
+            return;
+        }
+        core.changeSoundStatus();
+        core.ui.openSettings(false);
+    }
+    if (y == 4) core.ui.selectShop();
+    if (y == 5) this.decreaseHard();
+    if (y == 6) {
+        core.ui.syncSave();
+    }
+    if (y == 7) {
+        core.showConfirmBox("你确定要重新开始吗？", function () {
+            // core.drawTip("重新开始游戏");
+            core.ui.closePanel();
+            core.restart();
+        }, function () {
+            core.ui.openSettings(false);
+        });
+    }
+    if (y==8) {
+        core.ui.drawAbout();
+        // core.debug();
+    }
+    if (y == 9) core.ui.closePanel();
+    return;
+}
+
 
 ////// 转换楼层结束的事件 //////
 events.prototype.afterChangeFloor = function (floorId) {
@@ -138,70 +211,10 @@ events.prototype.afterChangeFloor = function (floorId) {
     }
 }
 
-////// 走到某位置时触发事件 //////
-events.prototype.blockEvent = function (data) {
 
-    if (core.status.floorId=='MT16' && data.x==6 && data.y==2) {
-        core.waitHeroToStop(function (){
-            // 和魔王对话
-            core.drawText([
-                {'content': '冥灵魔王？你不是已经被我杀了吗？\n为什么会出现在这里？？', 'id': 'hero'},
-                {'content': '因为...这里位于魔塔的另一个位面。\n大多数情况下，塔内死亡的生物都会回归这里。', 'id': 'vampire'},
-                {'content': '你的意思是说，我现在已经死了？', 'id': 'hero'},
-                {'content': '是的，能到达这里的，\n除了可以掌控位面的高智慧生物以外，只有\n亡灵。', 'id': 'vampire'},
-                {'content': '呵，既然，我的生命已经不复存在。\n我已经没有什么好怕的了。\n大魔头，我们冤家路窄，居然又见面了，\n决斗吧！', 'id': 'hero'},
-                {'content': '你似乎还没明白。。。', 'id': 'vampire'},
-                {'content': '明白什么？', 'id': 'hero'},
-                {'content': '诶，算了，决一死战吧。', 'id': 'vampire'},
-            ], function() {
-                core.removeBlock('data', data.x, data.y);
-            })
-        });
-        return;
-    }
-
-}
 
 ////// 选中菜单栏 //////
-events.prototype.selectSettings = function (y) {
-    if (y == 3) {
-        if (core.musicStatus.isIOS) {
-            core.drawTip("iOS设备不支持播放音乐");
-            return;
-        }
-        core.changeSoundStatus();
-        core.openSettings(false);
-    }
-    if (y == 4) core.selectShop();
-    if (y == 5) this.decreaseHard();
-    if (y == 6) {
-        core.syncSave();
-        /*
-        core.showConfirmBox('你确定要清空所有存档吗？', function(){
-            core.closePanel();
-            localStorage.clear();
-            core.drawTip("操作成功");
-        }, function() {
-            core.openSettings(false);
-        });
-        */
-    }
-    if (y == 7) {
-        core.showConfirmBox("你确定要重新开始吗？", function () {
-            // core.drawTip("重新开始游戏");
-            core.closePanel();
-            core.restart();
-        }, function () {
-            core.openSettings(false);
-        });
-    }
-    if (y==8) {
-        core.drawAbout();
-        // core.debug();
-    }
-    if (y == 9) core.closePanel();
-    return;
-}
+
 
 
 ////// 降低难度 //////
@@ -218,7 +231,7 @@ events.prototype.decreaseHard = function() {
         core.status.hero.hp += add;
         core.status.hard--;
         core.updateStatusBar();
-        core.closePanel();
+        core.ui.closePanel();
         core.drawTip("降低难度成功，生命+" + add);
     }, function () {
         core.openSettings(false);
@@ -235,7 +248,7 @@ events.prototype.canUseQuickShop = function(index) {
 ////// 尝试使用道具 //////
 events.prototype.useItem = function(itemId) {
     console.log("使用道具："+core.material.items[itemId].name);
-    core.closePanel(false);
+    core.ui.closePanel(false);
 
     if (itemId=='book') {
         core.openBook(false);
@@ -312,6 +325,279 @@ events.prototype.passNet = function (data) {
     }
 }
 
+/*********** 界面上的点击事件 ***************/
+
+// 怪物手册
+events.prototype.clickBook = function(x,y) {
+    // 上一页
+    if ((x == 3 || x == 4) && y == 12) {
+        core.ui.drawEnemyBook(core.status.event.data - 1);
+    }
+    // 下一页
+    if ((x == 8 || x == 9) && y == 12) {
+        core.ui.drawEnemyBook(core.status.event.data + 1);
+    }
+    // 返回
+    if (x>=10 && x<=12 && y==12) {
+        core.ui.closePanel(true);
+    }
+    return;
+}
+
+// 飞行器
+events.prototype.clickFly = function(x,y) {
+    if ((x==10 || x==11) && y==9) core.ui.drawFly(core.status.event.data-1);
+    if ((x==10 || x==11) && y==5) core.ui.drawFly(core.status.event.data+1);
+    if (x>=5 && x<=7 && y==12) core.ui.closePanel();
+    if (x>=0 && x<=9 && y>=3 && y<=11) {
+        var index=core.status.hero.flyRange.indexOf(core.status.floorId);
+        var stair=core.status.event.data<index?"upFloor":"downFloor";
+        var floorId=core.status.event.data;
+        core.changeFloor(core.status.hero.flyRange[floorId], stair);
+        core.ui.closePanel();
+    }
+    return;
+}
+
+// 商店
+events.prototype.clickShop = function(x,y) {
+    if (core.status.event.data == null) {
+        console.log("发生错误，商店不存在？");
+        return;
+    }
+    if (x >= 5 && x <= 7) {
+        if (y >= 5 && y <= 8) {
+            if (y >= 5 + core.status.event.data.choices.length) return;
+
+            var money = core.getStatus('money'), experience = core.getStatus('experience');
+
+            var shop = core.status.event.data;
+            var times = shop.times, need = eval(shop.need);
+            var use = shop.use;
+            var use_text = use=='money'?"金币":"经验";
+
+            var choice = shop.choices[y-5];
+            if (core.isset(choice.need))
+                need = eval(choice.need);
+
+            if (need > eval(use)) {
+                core.drawTip("你的"+use_text+"不足");
+                return;
+            }
+
+            eval(use+'-='+need);
+            core.setStatus('money', money);
+            core.setStatus('experience', experience);
+            core.updateStatusBar();
+
+            core.npcEffect(choice.effect);
+
+            core.status.event.data.times++;
+            core.ui.openShop(core.status.event.data.id);
+            return;
+        }
+
+        // 退出商店
+        if (y == 9) {
+            core.status.event.data = null;
+            core.ui.closePanel();
+            return;
+        }
+    }
+}
+
+events.prototype.clickSelectShop = function(x,y) {
+    if (x >= 5 && x <= 7) {
+        var shopList = core.status.shops, keys = Object.keys(shopList);
+        var topIndex = 6 - parseInt((keys.length + 1) / 2);
+        var exitIndex = 6 + parseInt((keys.length + 1) / 2);
+
+        if (y >= topIndex && y - topIndex < keys.length) {
+            var reason = core.events.canUseQuickShop(y-topIndex);
+            if (core.isset(reason)) {
+                core.drawText(reason);
+                return;
+            }
+            var shop=shopList[keys[y - topIndex]];
+            if (!shop.visited) {
+                if (shop.times==0) core.drawTip('该商店尚未开启');
+                else core.drawTip('该商店已失效');
+                return;
+            }
+            core.ui.openShop(keys[y - topIndex]);
+        }
+        if (y == exitIndex) {
+            core.ui.closePanel();
+        }
+    }
+}
+
+// 工具栏
+events.prototype.clickToolbox = function(x,y) {
+
+    // 返回
+    if (x>=10 && x<=12 && y==12) {
+        core.ui.closePanel(false);
+        return;
+    }
+
+    var itemId = null;
+    var items = null;
+
+    if (y>=4 && y<=7 && x!=12)
+        items = Object.keys(core.status.hero.items.tools).sort();
+
+    if (y>=9 && y<=12 && x!=12)
+        items = Object.keys(core.status.hero.items.constants).sort();
+
+    if (items==null) return;
+    var index=0;
+    if (y==4||y==5||y==9||y==10) index=parseInt(x/2);
+    else index=6+parseInt(x/2);
+
+    if (index>=items.length) return;
+    itemId=items[index];
+
+    if (itemId==core.status.event.data) {
+        core.events.useItem(itemId);
+    }
+    else {
+        core.ui.drawToolbox(itemId);
+    }
+}
+
+// 存读档
+events.prototype.clickSL = function(x,y) {
+    // 上一页
+    if ((x == 3 || x == 4) && y == 12) {
+        core.ui.drawSLPanel(core.status.event.data - 1);
+    }
+    // 下一页
+    if ((x == 8 || x == 9) && y == 12) {
+        core.ui.drawSLPanel(core.status.event.data + 1);
+    }
+    // 返回
+    if (x>=10 && x<=12 && y==12) {
+        core.ui.closePanel(false);
+        if (!core.isPlaying()) {
+            core.showStartAnimate();
+        }
+        return;
+    }
+
+    var index=6*core.status.event.data+1;
+    if (y>=1 && y<=4) {
+        if (x>=1 && x<=3) core.doSL(index, core.status.event.id);
+        if (x>=5 && x<=7) core.doSL(index+1, core.status.event.id);
+        if (x>=9 && x<=11) core.doSL(index+2, core.status.event.id);
+    }
+    if (y>=7 && y<=10) {
+        if (x>=1 && x<=3) core.doSL(index+3, core.status.event.id);
+        if (x>=5 && x<=7) core.doSL(index+4, core.status.event.id);
+        if (x>=9 && x<=11) core.doSL(index+5, core.status.event.id);
+    }
+}
+
+// 菜单栏
+events.prototype.clickSettings = function (x,y) {
+    if (x<5 || x>7) return;
+    if (y == 3) {
+        if (core.musicStatus.isIOS) {
+            core.drawTip("iOS设备不支持播放音乐");
+            return;
+        }
+        core.changeSoundStatus();
+        core.ui.openSettings(false);
+    }
+    if (y == 4) core.ui.drawSelectShop();
+    if (y == 5) this.decreaseHard();
+    if (y == 6) {
+        core.ui.syncSave();
+    }
+    if (y == 7) {
+        core.ui.showConfirmBox("你确定要重新开始吗？", function () {
+            core.ui.closePanel();
+            core.restart();
+        }, function () {
+            core.ui.openSettings(false);
+        });
+    }
+    if (y==8) {
+        core.ui.drawAbout();
+        // core.debug();
+    }
+    if (y == 9) core.ui.closePanel();
+    return;
+}
+
+events.prototype.clickNPC = function(x,y) {
+
+    var data = core.status.event.data.current;
+    if (core.isset(data)) {
+
+        // 对话，任意位置继续
+        if (data.action == 'text') {
+            core.npcAction();
+            return;
+        }
+        if (data.action == 'choices') {
+            if (x >= 5 && x <= 7) {
+                if (y >= 5 && y <= 8) {
+                    if (y >= 5 + data.choices.length) return;
+
+                    var choice = data.choices[y - 5];
+                    if (core.isset(choice.need)) {
+                        var able = true;
+                        choice.need.split(';').forEach(function (e) {
+                            var ones = e.split(',');
+                            var type = ones[0], key = ones[1], value = ones[2];
+                            if (type == 'status') {
+                                if (core.getStatus(key)<parseInt(value)) able=false;
+                            }
+                            else if (type == 'item') {
+                                if (core.itemCount(key)<parseInt(value)) able=false;
+                            }
+                        });
+                        if (!able) {
+                            core.drawTip("无法选择此项");
+                            return;
+                        }
+                        choice.need.split(';').forEach(function (e) {
+                            var ones = e.split(',');
+                            var type = ones[0], key = ones[1], value = ones[2];
+                            if (type == 'status') {
+                                core.setStatus(key, core.getStatus(key)-parseInt(value));
+                            }
+                            else if (type == 'item') {
+                                core.setItem(key, core.itemCount(key)-parseInt(value));
+                            }
+                        });
+                    }
+                    core.npcEffect(choice.effect);
+                    core.npcAction();
+                    return;
+                }
+
+                // 退出商店
+                if (y == 9 && !(core.isset(data.cancel) && !data.cancel)) {
+                    core.status.event.data = null;
+                    core.ui.closePanel();
+                    return;
+                }
+            }
+        }
+        if (data.action == 'custom') {
+            core.events.npcCustomActionOnClick(data, x, y);
+            return;
+        }
+    }
+}
+
+
+
+/*********** 点击事件 END ***************/
+
+
 // NPC自定义操作
 events.prototype.npcCustomAction = function (npcData) {
 
@@ -366,39 +652,4 @@ events.prototype.lose = function() {
         core.restart();
     });
 }
-
-
-// UI 部分
-
-events.prototype.drawUIAbout = function (left, top, width, height) {
-    var text_start = left + 24;
-
-    // 名称
-    core.canvas.ui.textAlign = "left";
-    core.fillText('ui', "异空间", text_start, top+35, "#FFD700", "bold 22px Verdana");
-    core.fillText('ui', "HTML5复刻版", text_start+75, top+37, "#DDDDDD", "bold 15px Verdana");
-    core.fillText('ui', "作者： 艾之葵", text_start, top + 80, "#FFFFFF", "bold 17px Verdana");
-    core.fillText('ui', "原作： ss433_2", text_start, top + 112, "#FFFFFF", "bold 17px Verdana");
-    core.fillText('ui', "制作工具： WebStorm", text_start, top + 144, "#FFFFFF", "bold 17px Verdana");
-    core.fillText('ui', "测试平台： Chrome/微信/iOS", text_start, top + 176, "#FFFFFF", "bold 17px Verdana");
-    core.fillText('ui', '特别鸣谢： ss433_2', text_start, top+208);
-    var len = core.canvas.ui.measureText('特别鸣谢： ').width;
-    core.fillText('ui', 'iEcho', text_start+len, top+240);
-    core.fillText('ui', '打Dota的喵', text_start+len, top+272);
-    core.fillText('ui', 'HTML5魔塔交流群：539113091', text_start, top+304);
-
-    core.fillText('ui', '<点击任意位置继续>', 230, 368, '#CCCCCC', '13px Verdana');
-}
-
-events.prototype.drawUISettings = function (left, top, width, height) {
-    core.canvas.ui.textAlign = "center";
-    core.fillText('ui', "音乐： " + (core.musicStatus.soundStatus ? "[ON]" : "[OFF]"), 208, top + 56, "#FFFFFF", "bold 17px Verdana");
-    core.fillText('ui', "快捷商店", 208, top + 88, "#FFFFFF", "bold 17px Verdana");
-    core.fillText('ui', "降低难度", 208, top + 120, "#FFFFFF", "bold 17px Verdana");
-    core.fillText('ui', "同步存档", 208, top + 152, "#FFFFFF", "bold 17px Verdana");
-    core.fillText('ui', "重新开始", 208, top + 184, "#FFFFFF", "bold 17px Verdana");
-    core.fillText('ui', "关于本塔", 208, top + 216, "#FFFFFF", "bold 17px Verdana");
-    core.fillText('ui', "返回游戏", 208, top + 248, "#FFFFFF", "bold 17px Verdana");
-}
-
 

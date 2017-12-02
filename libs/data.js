@@ -92,6 +92,20 @@ data.prototype.init = function() {
         'npcs': {},
         'animateSpeed': 500
     }
+    // 系统FLAG，在游戏运行中中请不要修改它。
+    this.flags = {
+
+        "HPMAX": 999999, // HP上限；-1无上限
+        "enableExperience": true, // 是否涉及经验值
+        "flyNearStair": false, // 是否需要在楼梯边使用传送器
+        "bombTrigger": true, // 使用炸弹后是否触发怪物事件（如开门）
+        "picaxeFourDirections": true, // 使用破墙镐是否四个方向都破坏；如果false则只破坏面前的墙壁
+
+
+        "potionWhileRouting": false, // 寻路算法是否经过血瓶；如果该项为false，则寻路算法会自动尽量绕过血瓶
+
+
+    }
 }
 
 data.prototype.getFirstData = function() {

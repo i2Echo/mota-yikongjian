@@ -73,7 +73,7 @@ function core() {
         'thisMap': null,
         'maps': null,
 
-        // 勇士状态
+        // 勇士状态；自动寻路相关
         'heroMoving': false,
         'heroStop': true,
         'lockControl': false,
@@ -85,6 +85,10 @@ function core() {
         'destStep': 0,
         'automaticRoutingTemp': {'destX': 0, 'destY': 0, 'moveStep': []},
         'autoStepRoutes':  [],
+        'holdingPath': 0,
+        'stepPostfix': [],
+        'mouseOutCheck': 1,
+        'moveStepBeforeStop': [],
 
         // event事件
         'savePage': null,
@@ -102,7 +106,10 @@ function core() {
         'boxAnimateObjs': [],
     };
     this.status = {};
+    this.flags = {};
 }
+
+/////////// 系统事件相关 ///////////
 
 core.prototype.init = function (dom, statusBar, canvas, images, sounds, coreData) {
     core.dom = dom;
@@ -124,6 +131,7 @@ core.prototype.init = function (dom, statusBar, canvas, images, sounds, coreData
     core.material.icons = core.icons.getIcons();
     core.material.events = core.events.getEvents();
     core.material.npcs = core.npcs.getNpcs();
+    core.flags = core.data.flags;
 
     // test if iOS
     core.musicStatus.soundStatus = core.getLocalStorage('soundStatus', true);
@@ -352,6 +360,13 @@ core.prototype.restart = function() {
     core.showStartAnimate();
 }
 
+/////////// 系统事件相关 END ///////////
+
+
+
+
+/////////// 键盘、鼠标事件相关 ///////////
+
 core.prototype.keyDown = function(e) {
 	if(!core.status.played) {
 		return;
@@ -361,18 +376,18 @@ core.prototype.keyDown = function(e) {
 	}
 	if (core.status.lockControl) {
         if (core.status.event.id == 'book') {
-            if (e.keyCode==37) core.drawEnemyBook(core.status.event.data - 1);
-            else if (e.keyCode==39) core.drawEnemyBook(core.status.event.data + 1);
+            if (e.keyCode==37) core.ui.drawEnemyBook(core.status.event.data - 1);
+            else if (e.keyCode==39) core.ui.drawEnemyBook(core.status.event.data + 1);
             return;
         }
         if (core.status.event.id == 'fly') {
-            if (e.keyCode==38) core.drawFly(core.status.event.data+1);
-            else if (e.keyCode==40) core.drawFly(core.status.event.data-1);
+            if (e.keyCode==38) core.ui.drawFly(core.status.event.data+1);
+            else if (e.keyCode==40) core.ui.drawFly(core.status.event.data-1);
             return;
         }
         if (core.status.event.id == 'save' || core.status.event.id == 'load') {
-            if (e.keyCode==37) core.drawSLPanel(core.status.event.data-1);
-            else if (e.keyCode==39) core.drawSLPanel(core.status.event.data+1);
+            if (e.keyCode==37) core.ui.drawSLPanel(core.status.event.data-1);
+            else if (e.keyCode==39) core.ui.drawSLPanel(core.status.event.data+1);
             return;
         }
 	    return;
@@ -400,29 +415,29 @@ core.prototype.keyUp = function(e) {
 
 	if (core.status.lockControl) {
         if (core.status.event.id == 'book' && (e.keyCode==27 || e.keyCode==88))
-            core.closePanel(true);
+            core.ui.closePanel(true);
 	    if (core.status.event.id == 'fly' && (e.keyCode==71 || e.keyCode==27))
-	        core.closePanel();
+	        core.ui.closePanel();
 	    if (core.status.event.id == 'fly' && e.keyCode==13) {
             var index=core.status.hero.flyRange.indexOf(core.status.floorId);
             var stair=core.status.event.data<index?"upFloor":"downFloor";
             var floorId=core.status.event.data;
-            core.closePanel();
+            core.ui.closePanel();
             core.changeFloor(core.status.hero.flyRange[floorId], stair);
         }
 	    if (core.status.event.id == 'save' && (e.keyCode==83 || e.keyCode==27))
-	        core.closePanel();
+	        core.ui.closePanel();
         if (core.status.event.id == 'load' && (e.keyCode==76 || e.keyCode==27))
-            core.closePanel();
+            core.ui.closePanel();
 	    if ((core.status.event.id == 'shop' || core.status.event.id == 'settings'
             || core.status.event.id == 'selectShop') && e.keyCode==27)
-	        core.closePanel();
+	        core.ui.closePanel();
 	    if (core.status.event.id == 'selectShop' && e.keyCode==75)
-	        core.closePanel();
+	        core.ui.closePanel();
         if (core.status.event.id == 'toolbox' && (e.keyCode==84 || e.keyCode==27))
-            core.closePanel();
+            core.ui.closePanel();
         if (core.status.event.id == 'about' && (e.keyCode==13 || e.keyCode==32))
-            core.closePanel();
+            core.ui.closePanel();
         if (core.status.event.id == 'text' && (e.keyCode==13 || e.keyCode==32))
             core.drawText();
         if (core.status.event.id == 'npc' && core.isset(core.status.event.data.current)
@@ -434,7 +449,7 @@ core.prototype.keyUp = function(e) {
 
     switch (e.keyCode) {
         case 27: // ESC
-            core.openSettings(true);
+            core.ui.drawSettings(true);
             break;
         case 71: // G
             core.useFly(true);
@@ -455,7 +470,7 @@ core.prototype.keyUp = function(e) {
             core.turnHero();
             break;
         case 75: // K
-            core.selectShop(true);
+            core.ui.drawSelectShop(true);
             break;
         case 37: // UP
             break;
@@ -470,6 +485,92 @@ core.prototype.keyUp = function(e) {
 
 }
 
+core.prototype.ondown = function (x ,y) {
+    if (!core.status.played || core.status.lockControl) {
+        core.onclick(x, y, []);
+        return;
+    }
+    core.status.holdingPath=1;
+    core.status.mouseOutCheck =1;
+    window.setTimeout(core.clearStepPostfix);
+    core.saveCanvas('ui');
+    core.clearMap('ui', 0, 0, 416,416);
+    var pos={'x':x,'y':y}
+    core.status.stepPostfix=[];
+    core.status.stepPostfix.push(pos);
+    core.fillPosWithPoint(pos);
+}
+
+core.prototype.onmove = function (x ,y) {
+    if (core.status.holdingPath==0){return;}
+    core.status.mouseOutCheck =1;
+    var pos={'x':x,'y':y};
+    var pos0=core.status.stepPostfix[core.status.stepPostfix.length-1];
+    var directionDistance=[pos.y-pos0.y,pos0.x-pos.x,pos0.y-pos.y,pos.x-pos0.x];
+    var max=0,index=4;
+    for(var ii=0;ii<4;ii++){
+        if(directionDistance[ii]>max){
+            index=ii;
+            max=directionDistance[ii];
+        }
+    }
+    pos=[{'x':0,'y':1},{'x':-1,'y':0},{'x':0,'y':-1},{'x':1,'y':0},false][index]
+    if(pos){
+        pos.x+=pos0.x;
+        pos.y+=pos0.y;
+        core.status.stepPostfix.push(pos);
+        core.fillPosWithPoint(pos);
+    }
+}
+
+core.prototype.onup = function () {
+    core.status.holdingPath=0;
+    if(core.status.stepPostfix.length>0){
+        var stepPostfix = [];
+        var direction={'0':{'1':'down','-1':'up'},'-1':{'0':'left'},'1':{'0':'right'}};
+        for(var ii=1;ii<core.status.stepPostfix.length;ii++){
+            var pos0 = core.status.stepPostfix[ii-1];
+            var pos = core.status.stepPostfix[ii];
+            stepPostfix.push({'direction': direction[pos.x-pos0.x][pos.y-pos0.y], 'x': pos.x, 'y': pos.y});
+        }
+        var posx=core.status.stepPostfix[0].x;
+        var posy=core.status.stepPostfix[0].y;
+        core.status.stepPostfix=[];
+        core.canvas.ui.clearRect(0, 0, 416,416);
+        core.canvas.ui.restore();
+        core.onclick(posx,posy,stepPostfix);
+        //posx,posy是之前寻路的目标点,stepPostfix是后续的移动
+    }
+}
+
+core.prototype.getClickLoc = function (x, y) {
+
+    if (!core.isset(core.position.canvas.top)) return null;
+
+    var statusBar = {'x': 0, 'y': 0};
+    var size = 32;
+    size = size * core.position.scale;
+
+    switch (core.position.screenMode) {// 这里的3是指statusBar和游戏画布之间的白线宽度
+        case 'vertical':
+            statusBar.x = 0;
+            statusBar.y = core.position.statusBar.height + 3;
+            break;
+        case 'horizontal':
+            statusBar.x = core.position.statusBar.width + 3;
+            console.log(core.position.statusBar.width)
+            statusBar.y = 0;
+            break;
+        case 'bigScreen':
+            statusBar.x = core.position.statusBar.width + 3;
+            statusBar.y = 0;
+            break;
+    }
+    var left = core.dom.gameGroup.offsetLeft + statusBar.x;
+    var top = core.dom.gameGroup.offsetTop + statusBar.y;
+    var loc={'x': x - left, 'y': y - top, 'size': size};
+    return loc;
+}
 
 core.prototype.onclick = function (x, y, stepPostfix) {
     // console.log("Click: (" + x + "," + y + ")");
@@ -485,183 +586,43 @@ core.prototype.onclick = function (x, y, stepPostfix) {
 
     // 怪物手册
     if (core.status.event.id == 'book') {
-        // 上一页
-        if ((x == 3 || x == 4) && y == 12) {
-            core.drawEnemyBook(core.status.event.data - 1);
-        }
-        // 下一页
-        if ((x == 8 || x == 9) && y == 12) {
-            core.drawEnemyBook(core.status.event.data + 1);
-        }
-        // 返回
-        if (x>=10 && x<=12 && y==12) {
-            core.closePanel(true);
-        }
+        core.events.clickBook(x,y);
         return;
     }
 
     // 楼层飞行器
     if (core.status.event.id == 'fly') {
-        if ((x==10 || x==11) && y==9) core.drawFly(core.status.event.data-1);
-        if ((x==10 || x==11) && y==5) core.drawFly(core.status.event.data+1);
-        if (x>=5 && x<=7 && y==12) core.closePanel();
-        if (x>=0 && x<=9 && y>=3 && y<=11) {
-            var index=core.status.hero.flyRange.indexOf(core.status.floorId);
-            var stair=core.status.event.data<index?"upFloor":"downFloor";
-            var floorId=core.status.event.data;
-            core.changeFloor(core.status.hero.flyRange[floorId], stair);
-            core.closePanel();
-        }
+        core.events.clickFly(x,y);
         return;
     }
 
     // 设置
     if (core.status.event.id == 'settings') {
-        if (x >= 5 && x <= 7) core.events.selectSettings(y);
+        core.events.clickSettings(x,y);
         return;
     }
 
     // 商店
     if (core.status.event.id == 'shop') {
-        if (core.status.event.data == null) {
-            console.log("发生错误，商店不存在？");
-            return;
-        }
-        if (x >= 5 && x <= 7) {
-            if (y >= 5 && y <= 8) {
-                if (y >= 5 + core.status.event.data.choices.length) return;
-
-                var money = core.getStatus('money'), experience = core.getStatus('experience');
-
-                var shop = core.status.event.data;
-                var times = shop.times, need = eval(shop.need);
-                var use = shop.use;
-                var use_text = use=='money'?"金币":"经验";
-
-                var choice = shop.choices[y-5];
-                if (core.isset(choice.need))
-                    need = eval(choice.need);
-
-                if (need > eval(use)) {
-                    core.drawTip("你的"+use_text+"不足");
-                    return;
-                }
-
-                eval(use+'-='+need);
-                core.setStatus('money', money);
-                core.setStatus('experience', experience);
-                core.updateStatusBar();
-
-                core.npcEffect(choice.effect);
-
-                core.status.event.data.times++;
-                core.openShop(core.status.event.data.id);
-                return;
-            }
-
-            // 退出商店
-            if (y == 9) {
-                core.status.event.data = null;
-                core.closePanel();
-                return;
-            }
-        }
+        core.events.clickShop(x,y);
+        return;
     }
 
     // 快捷商店
     if (core.status.event.id == 'selectShop') {
-        if (x >= 5 && x <= 7) {
-            var shopList = core.status.shops, keys = Object.keys(shopList);
-            var topIndex = 6 - parseInt((keys.length + 1) / 2);
-            var exitIndex = 6 + parseInt((keys.length + 1) / 2);
-
-            if (y >= topIndex && y - topIndex < keys.length) {
-                var reason = core.events.canUseQuickShop(y-topIndex);
-                if (core.isset(reason)) {
-                    core.drawText(reason);
-                    return;
-                }
-                var shop=shopList[keys[y - topIndex]];
-                if (!shop.visited) {
-                    if (shop.times==0) core.drawTip('该商店尚未开启');
-                    else core.drawTip('该商店已失效');
-                    return;
-                }
-                core.openShop(keys[y - topIndex]);
-            }
-            if (y == exitIndex) {
-                core.closePanel();
-            }
-        }
+        core.events.clickSelectShop(x,y);
         return;
     }
 
     // 工具栏
     if (core.status.event.id == 'toolbox') {
-
-        // 返回
-        if (x>=10 && x<=12 && y==12) {
-            core.closePanel(false);
-            return;
-        }
-
-        var itemId = null;
-        var items = null;
-
-        if (y>=4 && y<=7 && x!=12)
-            items = Object.keys(core.status.hero.items.tools).sort();
-
-        if (y>=9 && y<=12 && x!=12)
-            items = Object.keys(core.status.hero.items.constants).sort();
-
-        if (items==null) return;
-        var index=0;
-        if (y==4||y==5||y==9||y==10) index=parseInt(x/2);
-        else index=6+parseInt(x/2);
-
-        if (index>=items.length) return;
-        itemId=items[index];
-
-        if (itemId==core.status.event.data) {
-            core.events.useItem(itemId);
-        }
-        else {
-            core.drawToolbox(itemId);
-        }
+        core.events.clickToolbox(x,y);
         return;
-
     }
 
     // 存读档
     if (core.status.event.id == 'save' || core.status.event.id == 'load') {
-        // 上一页
-        if ((x == 3 || x == 4) && y == 12) {
-            core.drawSLPanel(core.status.event.data - 1);
-        }
-        // 下一页
-        if ((x == 8 || x == 9) && y == 12) {
-            core.drawSLPanel(core.status.event.data + 1);
-        }
-        // 返回
-        if (x>=10 && x<=12 && y==12) {
-            core.closePanel(false);
-            if (!core.isPlaying()) {
-                core.showStartAnimate();
-            }
-            return;
-        }
-
-        var index=6*core.status.event.data+1;
-        if (y>=1 && y<=4) {
-            if (x>=1 && x<=3) core.doSL(index, core.status.event.id);
-            if (x>=5 && x<=7) core.doSL(index+1, core.status.event.id);
-            if (x>=9 && x<=11) core.doSL(index+2, core.status.event.id);
-        }
-        if (y>=7 && y<=10) {
-            if (x>=1 && x<=3) core.doSL(index+3, core.status.event.id);
-            if (x>=5 && x<=7) core.doSL(index+4, core.status.event.id);
-            if (x>=9 && x<=11) core.doSL(index+5, core.status.event.id);
-        }
+        core.events.clickSL(x,y);
         return;
     }
 
@@ -677,7 +638,7 @@ core.prototype.onclick = function (x, y, stepPostfix) {
     // 关于
     if (core.status.event.id == 'about') {
         if (core.isPlaying())
-            core.closePanel(false);
+            core.ui.closePanel(false);
         else
             core.showStartAnimate();
         return;
@@ -685,73 +646,14 @@ core.prototype.onclick = function (x, y, stepPostfix) {
 
     // 纯文本
     if (core.status.event.id == 'text') {
-        // core.closePanel(false);
         core.drawText();
         return;
     }
 
     // NPC
     if (core.status.event.id == 'npc') {
-
-        var data = core.status.event.data.current;
-        if (core.isset(data)) {
-
-            // 对话，任意位置继续
-            if (data.action == 'text') {
-                core.npcAction();
-                return;
-            }
-            if (data.action == 'choices') {
-                if (x >= 5 && x <= 7) {
-                    if (y >= 5 && y <= 8) {
-                        if (y >= 5 + data.choices.length) return;
-
-                        var choice = data.choices[y - 5];
-                        if (core.isset(choice.need)) {
-                            var able = true;
-                            choice.need.split(';').forEach(function (e) {
-                                var ones = e.split(',');
-                                var type = ones[0], key = ones[1], value = ones[2];
-                                if (type == 'status') {
-                                    if (core.getStatus(key)<parseInt(value)) able=false;
-                                }
-                                else if (type == 'item') {
-                                    if (core.itemCount(key)<parseInt(value)) able=false;
-                                }
-                            });
-                            if (!able) {
-                                core.drawTip("无法选择此项");
-                                return;
-                            }
-                            choice.need.split(';').forEach(function (e) {
-                                var ones = e.split(',');
-                                var type = ones[0], key = ones[1], value = ones[2];
-                                if (type == 'status') {
-                                    core.setStatus(key, core.getStatus(key)-parseInt(value));
-                                }
-                                else if (type == 'item') {
-                                    core.setItem(key, core.itemCount(key)-parseInt(value));
-                                }
-                            });
-                        }
-                        core.npcEffect(choice.effect);
-                        core.npcAction();
-                        return;
-                    }
-
-                    // 退出商店
-                    if (y == 9 && !(core.isset(data.cancel) && !data.cancel)) {
-                        core.status.event.data = null;
-                        core.closePanel();
-                        return;
-                    }
-                }
-            }
-            if (data.action == 'custom') {
-                core.events.npcCustomActionOnClick(data, x, y);
-                return;
-            }
-        }
+        core.events.clickNPC(x,y);
+        return;
     }
 
     // 同步存档
@@ -877,7 +779,7 @@ core.prototype.onclick = function (x, y, stepPostfix) {
             }
         }
         if (x>=5 && x<=7 && y==7) {
-            core.openSettings(false);
+            core.ui.openSettings(false);
         }
     }
 
@@ -885,20 +787,19 @@ core.prototype.onclick = function (x, y, stepPostfix) {
 
 core.prototype.onmousewheel = function (direct) {
     // 楼层飞行器
-    if (core.status.event.id == 'fly') {
-        if (direct==-1) core.drawFly(core.status.event.data-1);
-        if (direct==1) core.drawFly(core.status.event.data+1);
+    if (core.status.lockControl && core.status.event.id == 'fly') {
+        if (direct==-1) core.ui.drawFly(core.status.event.data-1);
+        if (direct==1) core.ui.drawFly(core.status.event.data+1);
         return;
     }
 }
 
-/**
- * 初始化 end
- */
+/////////// 键盘、鼠标事件相关 END ///////////
 
-/**
- * 寻路代码 start
- */
+
+
+
+/////////// 寻路代码相关 ///////////
 
 core.prototype.clearAutomaticRouteNode = function (x, y) {
     core.canvas.ui.clearRect(x * 32 + 5, y * 32 + 5, 27, 27);
@@ -913,7 +814,7 @@ core.prototype.stopAutomaticRoute = function () {
     core.status.automaticRouted = false;
     core.status.autoStepRoutes = [];
     core.status.automaticRoutingTemp = {'destX': 0, 'destY': 0, 'moveStep': []};
-    if (typeof(core.status.moveStepBeforeStop)=="undefined" || core.status.moveStepBeforeStop.length==0)
+    if (core.status.moveStepBeforeStop.length==0)
         core.canvas.ui.clearRect(0, 0, 416, 416);
 }
 
@@ -1088,7 +989,8 @@ core.prototype.automaticRoute = function (destX, destY) {
                 continue;
             var deepAdd=1;
             if (core.idEndWith(nx,ny,'lavaNet')) deepAdd=100;
-            if (core.idEndWith(nx,ny,'Potion')) deepAdd=20;
+            // 自动绕过血瓶
+            if (!core.flags.potionWhileRouting && core.idEndWith(nx,ny,'Potion')) deepAdd=20;
             route[nid] = direction;
             queue.push(169*(nowDeep+deepAdd)+nid);
         }
@@ -1111,13 +1013,29 @@ core.prototype.automaticRoute = function (destX, destY) {
     return ans;
 }
 
-/**
- * 寻路代码 end
- */
+core.prototype.fillPosWithPoint = function (pos) {
+    core.fillRect('ui', pos.x*32+12,pos.y*32+12,8,8, '#bfbfbf');
+}
 
-/**
- * 自动行走 start
- */
+core.prototype.clearStepPostfix = function () {
+    if(core.status.mouseOutCheck >0){
+        core.status.mouseOutCheck--;
+        window.setTimeout(core.clearStepPostfix,1000);
+        return;
+    }
+    core.status.holdingPath=0;
+    if(core.status.stepPostfix.length>0){
+        core.status.stepPostfix=[];
+        core.canvas.ui.clearRect(0, 0, 416,416);
+        core.canvas.ui.restore();
+    }
+}
+
+/////////// 寻路代码相关 END ///////////
+
+
+
+/////////// 自动行走 & 行走控制 ///////////
 
 core.prototype.stopAutoHeroMove = function () {
     core.status.autoHeroMove = false;
@@ -1155,14 +1073,6 @@ core.prototype.autoHeroMove = function (direction, step) {
     core.status.destStep = step;
     core.moveHero(direction);
 }
-
-/**
- * 自动行走 end
- */
-
-/**
- * 行走控制 start
- */
 
 core.prototype.setHeroMoveInterval = function (direction, x, y, callback) {
     if (core.status.heroMoving) {
@@ -1353,19 +1263,18 @@ core.prototype.drawHero = function (direction, x, y, status, offsetX, offsetY) {
     core.canvas.hero.drawImage(core.material.images.heros, heroIcon.loc[status] * heroIcon.size, heroIcon.loc.iconLoc * heroIcon.size, heroIcon.size, heroIcon.size, x + offsetX, y + offsetY, heroIcon.size, heroIcon.size);
 }
 
-/**
- * 行走控制 end
- */
+/////////// 自动行走 & 行走控制 END ///////////
 
-/**
- * 地图处理 start
- */
 
+
+/////////// 地图处理 ///////////
+
+// 开门
 core.prototype.openDoor = function (id, x, y, needKey, callback) {
     // 是否存在门
     if (!core.terrainExists(x, y, id)) return;
     // core.lockControl();
-    if (typeof(core.status.moveStepBeforeStop)=="undefined" || core.status.moveStepBeforeStop.length==0) {
+    if (core.status.moveStepBeforeStop.length==0) {
         core.status.moveStepBeforeStop=core.status.autoStepRoutes.slice(core.status.autoStep-1,core.status.autoStepRoutes.length);
         if (core.status.moveStepBeforeStop.length>=1)core.status.moveStepBeforeStop[0].step-=core.status.movedStep;
     }
@@ -1399,6 +1308,7 @@ core.prototype.openDoor = function (id, x, y, needKey, callback) {
     }, 30)
 }
 
+// 战斗
 core.prototype.battle = function (id, x, y, callback) {
     if (typeof(core.status.moveStepBeforeStop)=="undefined" || core.status.moveStepBeforeStop.length==0) {
         core.status.moveStepBeforeStop=core.status.autoStepRoutes.slice(core.status.autoStep-1,core.status.autoStepRoutes.length);
@@ -1407,7 +1317,7 @@ core.prototype.battle = function (id, x, y, callback) {
     core.stopHero();
     core.stopAutomaticRoute();
 
-    var damage = core.getDamage(id);
+    var damage = core.enemys.getDamage(id);
     if (damage >= core.status.hero.hp) {
         core.drawTip("你打不过此怪物！");
         core.clearContinueAutomaticRoute();
@@ -1415,14 +1325,17 @@ core.prototype.battle = function (id, x, y, callback) {
     }
     core.playSound('attack', 'ogg');
     core.status.hero.hp -= damage;
-    core.status.hero.money += core.material.enemys[id].money;
+    var money = core.material.enemys[id].money;
+    if (core.hasItem('coin'))
+        core.status.hero.money += core.material.enemys[id].money;
+    core.status.hero.money += money;
     core.status.hero.experience += core.material.enemys[id].experience;
     core.updateStatusBar();
     core.removeBlock('event', x, y);
     core.canvas.event.clearRect(32 * x, 32 * y, 32, 32);
     core.updateFg();
-    var hint = "打败 " + core.material.enemys[id].name + "，金币+" + core.material.enemys[id].money;
-    if (core.firstData.enableExperience)
+    var hint = "打败 " + core.material.enemys[id].name + "，金币+" + money;
+    if (core.flags.enableExperience)
         hint += "，经验+" + core.material.enemys[id].experience;
     core.drawTip(hint);
 
@@ -1432,103 +1345,7 @@ core.prototype.battle = function (id, x, y, callback) {
         callback();
 }
 
-core.prototype.getDamage = function (monsterId) {
-    var monster = core.material.enemys[monsterId];
-    var hero_atk = core.status.hero.atk, hero_def = core.status.hero.def, hero_mdef = core.status.hero.mdef;
-    var mon_hp = monster.hp, mon_atk = monster.atk, mon_def = monster.def, mon_special = monster.special;
-    var damage = core.calDamage(hero_atk, hero_def, hero_mdef, mon_hp, mon_atk, mon_def, mon_special);
-    var extra_damage = 0;
-    if (monster.special == 11) { // 吸血
-        extra_damage = core.status.hero.hp * monster.value;
-
-        if (core.status.hero.flags.hasShield5) // 存在神圣盾
-            extra_damage /= 2;
-
-        extra_damage = parseInt(extra_damage);
-    }
-    return damage + extra_damage;
-}
-
-core.prototype.getCritical = function (monsterId) {
-    var monster = core.material.enemys[monsterId];
-    if (monster.special == 3) return "???";
-    var last = core.calDamage(core.status.hero.atk, core.status.hero.def, core.status.hero.mdef,
-        monster.hp, monster.atk, monster.def, monster.special);
-    if (last == 0) return 0;
-
-    for (var i = core.status.hero.atk + 1; i <= monster.hp + monster.def; i++) {
-        var damage = core.calDamage(i, core.status.hero.def, core.status.hero.mdef,
-            monster.hp, monster.atk, monster.def, monster.special);
-        if (damage < last)
-            return i - core.status.hero.atk;
-        last = damage;
-    }
-    return 0;
-}
-
-core.prototype.getCriticalDamage = function (monsterId) {
-    var c = core.getCritical(monsterId);
-    if (c == '???') return '???';
-    if (c == 0) return 0;
-    var monster = core.material.enemys[monsterId];
-    // if (c<=0) return 0;
-    var last = core.calDamage(core.status.hero.atk, core.status.hero.def, core.status.hero.mdef,
-        monster.hp, monster.atk, monster.def, monster.special);
-    if (last == 999999999) return '???';
-
-    return last - core.calDamage(core.status.hero.atk + c, core.status.hero.def, core.status.hero.mdef,
-        monster.hp, monster.atk, monster.def, monster.special);
-}
-
-core.prototype.getDefDamage = function (monsterId) {
-    var monster = core.material.enemys[monsterId];
-    return core.calDamage(core.status.hero.atk, core.status.hero.def, core.status.hero.mdef,
-        monster.hp, monster.atk, monster.def, monster.special) -
-        core.calDamage(core.status.hero.atk, core.status.hero.def + 1, core.status.hero.mdef,
-            monster.hp, monster.atk, monster.def, monster.special)
-}
-
-core.prototype.calDamage = function (hero_atk, hero_def, hero_mdef, mon_hp, mon_atk, mon_def, mon_special) {
-    // 魔攻
-    if (mon_special == 2) hero_def = 0;
-    // 坚固
-    if (mon_special == 3 && mon_def < hero_atk - 1) mon_def = hero_atk - 1;
-    // 模仿
-    if (mon_special == 10) {
-        mon_atk = hero_atk;
-        mon_def = hero_def;
-    }
-    if (hero_atk <= mon_def) return 999999999;
-
-    var per_damage = mon_atk - hero_def;
-    if (per_damage < 0) per_damage = 0;
-    // 2连击 & 3连击
-
-    if (mon_special == 4) per_damage *= 2;
-    if (mon_special == 5) per_damage *= 3;
-    if (mon_special == 6) per_damage *= 4;
-    // 反击
-    if (mon_special == 8) per_damage += parseInt(0.1 * hero_atk);
-
-    // 先攻
-    var damage = mon_special == 1 ? per_damage : 0;
-    // 破甲
-    if (mon_special == 7) damage = parseInt(0.9 * hero_def);
-    // 净化
-    if (mon_special == 9) damage = 3 * hero_mdef;
-
-    var turn = parseInt((mon_hp - 1) / (hero_atk - mon_def));
-    var ans = damage + turn * per_damage;
-    ans -= hero_mdef;
-
-    // 魔防回血
-    // return ans;
-
-    // 魔防不回血
-    return ans <= 0 ? 0 : ans;
-
-}
-
+// 楼层切换
 core.prototype.changeFloor = function (floorId, stair, heroLoc, callback) {
     core.lockControl();
     core.stopHero();
@@ -1572,6 +1389,7 @@ core.prototype.changeFloor = function (floorId, stair, heroLoc, callback) {
     }, 50);
 }
 
+// 地图切换
 core.prototype.mapChangeAnimate = function (mode, callback) {
     if (mode == 'show') {
         core.show(core.dom.floorMsgGroup, 15, function () {
@@ -1701,6 +1519,11 @@ core.prototype.setFillStyle = function (map, style) {
     }
 }
 
+/**
+ * 地图绘制
+ * @param mapName 地图ID
+ * @param callback 绘制完毕后的回调函数
+ */
 core.prototype.drawMap = function (mapName, callback) {
     var mapData = core.status.maps[mapName];
     var mapBlocks = mapData.blocks;
@@ -1748,15 +1571,17 @@ core.prototype.drawMap = function (mapName, callback) {
         }
     }
     core.setGlobalAnimate(core.firstData.animateSpeed);
-    callback();
+    if (core.isset(callback))
+        callback();
 }
 
+/**
+ * 是否存在不可通行节点
+ * @param x
+ * @param y
+ * @returns {boolean}
+ */
 core.prototype.noPassExists = function (x, y) {
-    /*
-    if (core.enemyExists(x, y) || core.npcExists(x, y)) {
-        return true;
-    }
-    */
     var blocks = core.status.thisMap.blocks;
     for (var n = 0; n < blocks.length; n++) {
         if (blocks[n].x == x && blocks[n].y == y && core.isset(blocks[n].event) && core.isset(blocks[n].event.noPass) && blocks[n].event.noPass) {
@@ -1766,6 +1591,12 @@ core.prototype.noPassExists = function (x, y) {
     return false;
 }
 
+/**
+ * 是否存在NPC节点
+ * @param x
+ * @param y
+ * @returns {boolean}
+ */
 core.prototype.npcExists = function (x, y) {
     var blocks = core.status.thisMap.blocks;
     for (var n = 0; n < blocks.length; n++) {
@@ -1776,6 +1607,13 @@ core.prototype.npcExists = function (x, y) {
     return false;
 }
 
+/**
+ * 是否存在地形
+ * @param x
+ * @param y
+ * @param id
+ * @returns {boolean}
+ */
 core.prototype.terrainExists = function (x, y, id) {
     if (x > 12 || y > 12 || x < 0 || y < 0) {
         return true;
@@ -1796,6 +1634,12 @@ core.prototype.terrainExists = function (x, y, id) {
     return false;
 }
 
+/**
+ * 是否存在楼梯
+ * @param x
+ * @param y
+ * @returns {boolean}
+ */
 core.prototype.stairExists = function (x, y) {
     var blocks = core.status.thisMap.blocks;
     for (var s = 0; s < blocks.length; s++) {
@@ -1811,19 +1655,6 @@ core.prototype.enemyExists = function (x, y, id) {
     for (var e = 0; e < blocks.length; e++) {
         if (blocks[e].x == x && blocks[e].y == y && core.isset(blocks[e].event) && blocks[e].event.cls == 'enemys' && ((core.isset(id) && core.isset(blocks[e].event.id)) ? blocks[e].event.id == id : true)) {
             return true;
-        }
-    }
-    return false;
-}
-
-core.prototype.blockExists = function (x, y) {
-    if (x > 12 || y > 12 || x < 0 || y < 0) {
-        return true;
-    }
-    var mapBlocks = core.status.thisMap.blocks;
-    for (var b = 0; b < mapBlocks.length; b++) {
-        if (mapBlocks[b].x == x && mapBlocks[b].y == y) {
-            return (mapBlocks[b].event && mapBlocks[b].event.noPass) || (mapBlocks[b].bg && mapBlocks[b].bg.noPass);
         }
     }
     return false;
@@ -2076,6 +1907,9 @@ core.prototype.getHeroLoc = function (itemName) {
     return core.status.hero.loc[itemName];
 }
 
+/**
+ * 更新显伤
+ */
 core.prototype.updateFg = function () {
     if (!core.isset(core.status.thisMap) || !core.isset(core.status.thisMap.blocks)) return;
     // 更新显伤
@@ -2090,7 +1924,7 @@ core.prototype.updateFg = function () {
         if (core.isset(mapBlocks[b].event) && mapBlocks[b].event.cls == 'enemys') {
             var id = mapBlocks[b].event.id;
 
-            var damage = core.getDamage(id);
+            var damage = core.enemys.getDamage(id);
             var color = "#000000";
             if (damage <= 0) color = '#00FF00';
             else if (damage < hero_hp / 3) color = '#FFFFFF';
@@ -2114,9 +1948,7 @@ core.prototype.updateFg = function () {
     }
 }
 
-/**
- * 地图处理 end
- */
+
 
 /**
  * 物品处理 start
@@ -2294,22 +2126,20 @@ core.prototype.drawText = function (contents, callback) {
 
     if (core.status.event.data.list.length==0) {
         var callback = core.status.event.data.callback;
-        core.closePanel(false);
+        core.ui.closePanel(false);
         if (core.isset(callback)) callback();
         return;
     }
 
     var data=core.status.event.data.list.shift();
     if (typeof data == 'string')
-        core.drawTextBox(data);
+        core.ui.drawTextBox(data);
     else
-        core.drawTextBox(data.content, data.id);
+        core.ui.drawTextBox(data.content, data.id);
     // core.drawTextBox(content);
 }
 
-/**
- * 物品处理 end
- */
+/////////// 地图相关 END ///////////
 
 /*
  * NPC事件
@@ -2343,7 +2173,7 @@ core.prototype.npcAction = function() {
     if (core.status.event.data.list.length==0) {
         if (core.isset(core.status.event.data.callback))
             core.status.event.data.callback();
-        core.closePanel(false);
+        core.ui.closePanel(false);
         return;
     }
 
@@ -2354,7 +2184,7 @@ core.prototype.npcAction = function() {
 
     // 对话
     if (data.action=='text') {
-        core.drawTextBox(data.content, core.isset(data.isHero)&&data.isHero?'hero':data.id);
+        core.ui.drawTextBox(data.content, core.isset(data.isHero)&&data.isHero?'hero':data.id);
         return;
     }
     // 显示选项
@@ -2425,7 +2255,7 @@ core.prototype.npcAction = function() {
     }
     // 立刻再次访问
     if (data.action == 'revisit') {
-        core.closePanel(false);
+        core.ui.closePanel(false);
         core.visitNpc(id, x, y)
         return;
     }
@@ -2457,100 +2287,6 @@ core.prototype.npcEffect = function (effect, npc) {
     core.updateStatusBar();
 }
 
-core.prototype.drawTextBox = function(content, id) {
-
-    core.lockControl();
-
-    if (core.status.event.id == null)
-        core.status.event.id = 'text';
-
-    var background = core.canvas.ui.createPattern(core.material.ground, "repeat");
-    var contents = content.split('\n');
-
-    core.clearMap('ui', 0, 0, 416, 416);
-
-    var height = 416 - 10 - Math.min(416-24*(contents.length+1)-65, 250);
-    var left=10, top = (416-height)/2, right = 416 - 2*left, bottom = height;
-
-    // var left = 97, top = 64, right = 416 - 2 * left, bottom = 416 - 2 * top;
-    core.setAlpha('ui', 0.85);
-    core.fillRect('ui', left, top, right, bottom, '#000000');
-    core.setAlpha('ui', 1);
-    core.strokeRect('ui', left - 1, top - 1, right + 1, bottom + 1, '#FFFFFF', 2);
-
-    // 名称
-    core.canvas.ui.textAlign = "left";
-
-    var content_left = left + 25, content_top = top + 35;
-    if (core.isset(id)) {
-
-        content_left = left+63;
-        content_top = top+57;
-
-        var name, image, cls;
-        // 动画
-        core.strokeRect('ui', left + 15 - 1, top + 40 - 1, 34, 34, '#FFD700', 2);
-
-        if (id == 'hero') {
-            core.fillText('ui', core.status.hero.name, left + 63, top + 30, '#FFD700', 'bold 22px Verdana');
-            core.status.boxAnimateObjs = [];
-            core.setBoxAnimate(core.firstData.animateSpeed);
-            core.clearMap('ui', left + 15, top + 40, 32, 32);
-            core.fillRect('ui', left + 15, top + 40, 32, 32, background);
-            var heroIcon = core.material.icons.heros[core.status.hero.id]['down'];
-            core.canvas.ui.drawImage(core.material.images.heros, heroIcon.loc['stop'] * heroIcon.size, heroIcon.loc.iconLoc * heroIcon.size, heroIcon.size, heroIcon.size, left+15, top+40, 32, 32);
-        }
-        else {
-            var name = null, image = null, icon = null;
-            if (core.material.npcs.hasOwnProperty(id)) {
-                name = core.material.npcs[id].name;
-                image = core.material.images.npcs;
-                icon = core.material.icons.npcs[core.material.npcs[id].icon];
-            }
-            else if (core.material.enemys.hasOwnProperty(id)) {
-                name = core.material.enemys[id].name;
-                image = core.material.images.enemys;
-                icon = core.material.icons.enemys[id];
-            }
-            if (name != null) {
-                core.fillText('ui', name, left + 63, top + 30, '#FFD700', 'bold 22px Verdana');
-                core.status.boxAnimateObjs = [];
-                core.status.boxAnimateObjs.push({
-                    'bgx': left + 15, 'bgy': top + 40, 'bgsize': 32,
-                    'image': image, 'x': left + 15, 'y': top + 40, 'icon': icon
-                });
-                core.setBoxAnimate(core.firstData.animateSpeed);
-            }
-        }
-    }
-
-    for (var i=0;i<contents.length;i++) {
-        core.fillText('ui', contents[i], content_left, content_top, '#FFFFFF', '16px Verdana');
-        content_top+=24;
-    }
-
-    core.fillText('ui', '<点击任意位置继续>', 270, top+height-13, '#CCCCCC', '13px Verdana');
-}
-
-core.prototype.drawAbout = function() {
-
-    if (!core.isPlaying()) {
-        core.status.event = {'id': null, 'data': null};
-        core.dom.startPanel.style.display = 'none';
-    }
-    core.lockControl();
-    core.status.event.id = 'about';
-
-    core.clearMap('ui', 0, 0, 416, 416);
-    var left = 48, top = 36, right = 416 - 2 * left, bottom = 416 - 2 * top;
-
-    core.setAlpha('ui', 0.85);
-    core.fillRect('ui', left, top, right, bottom, '#000000');
-    core.setAlpha('ui', 1);
-    core.strokeRect('ui', left - 1, top - 1, right + 1, bottom + 1, '#FFFFFF', 2);
-
-    core.events.drawUIAbout(left, top, right, bottom);
-}
 
 /**
  * 系统机制 start
@@ -2694,41 +2430,10 @@ core.prototype.debug = function() {
     core.drawTip("作弊成功");
 }
 
-core.prototype.showConfirmBox = function (text, yesCallback, noCallback) {
-    core.status.event.id = 'confirmBox';
-    core.status.event.data = {'yes': yesCallback, 'no': noCallback};
-
-    var background = core.canvas.ui.createPattern(core.material.ground, "repeat");
-    core.clearMap('ui', 0, 0, 416, 416);
-    core.setAlpha('ui', 1);
-    core.setFillStyle('ui', background);
-    core.setFont('ui', "bold 19px Verdana");
-
-    var contents = text.split('\n');
-    var lines = contents.length;
-    var max_length = 0;
-    for (var i in contents) {
-        max_length = Math.max(max_length, core.canvas.ui.measureText(contents[i]).width);
-    }
-
-    var left = Math.min(208 - 40 - max_length / 2, 100);
-    var top = 140 - (lines-1)*30;
-    var right = 416 - 2 * left, bottom = 416 - 140 - top;
-
-    core.fillRect('ui', left, top, right, bottom, background);
-    core.strokeRect('ui', left - 1, top - 1, right + 1, bottom + 1, '#FFFFFF', 2);
-    core.canvas.ui.textAlign = "center";
-    for (var i in contents) {
-        core.fillText('ui', contents[i], 208, top + 50 + i*30, "#FFFFFF");
-    }
-
-    core.fillText('ui', "确定", 208 - 38, top + bottom - 35, "#FFFFFF", "bold 17px Verdana");
-    core.fillText('ui', "取消", 208 + 38, top + bottom - 35);
-}
 
 core.prototype.checkStatus = function (name, need, item, clearData) {
     if (need && core.status.event.id == name) {
-        core.closePanel(clearData);
+        core.ui.closePanel(clearData);
         return false;
     }
 
@@ -2751,14 +2456,12 @@ core.prototype.checkStatus = function (name, need, item, clearData) {
 core.prototype.openBook = function (need) {
     if (!core.checkStatus('book', need, true, true))
         return;
-
     core.useItem('book');
 }
 
 core.prototype.useFly = function (need) {
     if (!core.checkStatus('fly', need, true))
         return;
-
     if (!core.canUseItem('fly')) {
         core.drawTip("楼层传送器好像失效了");
         core.unLockControl();
@@ -2766,24 +2469,21 @@ core.prototype.useFly = function (need) {
         core.status.event.id = null;
         return;
     }
-
     core.useItem('fly');
     return;
 }
 
 core.prototype.openToolbox = function (need) {
-
     if (!core.checkStatus('toolbox', need))
         return;
-
     // core.drawTip("工具箱还未完成");
-    core.drawToolbox();
+    core.ui.drawToolbox();
 }
 
 core.prototype.save = function(need) {
     if (!core.checkStatus('save', need))
         return;
-    core.drawSLPanel(core.status.savePage);
+    core.ui.drawSLPanel(core.status.savePage);
 }
 
 core.prototype.load = function (need) {
@@ -2794,19 +2494,19 @@ core.prototype.load = function (need) {
         core.status.lockControl = true;
         core.dom.startPanel.style.display = 'none';
         var page = core.getLocalStorage('savePage', 0);
-        core.drawSLPanel(page);
+        core.ui.drawSLPanel(page);
         return;
     }
 
     if (!core.checkStatus('load', need))
         return;
-    core.drawSLPanel(core.status.savePage);
+    core.ui.drawSLPanel(core.status.savePage);
 }
 
 core.prototype.doSL = function (id, type) {
     if (type=='save') {
         if (core.saveData("save"+id)) {
-            core.closePanel();
+            core.ui.closePanel();
             core.drawTip('存档成功！');
             core.setLocalStorage('savePage', core.status.savePage);
         }
@@ -2821,7 +2521,7 @@ core.prototype.doSL = function (id, type) {
             core.drawTip("无效的存档");
             return;
         }
-        core.closePanel();
+        core.ui.closePanel();
         core.loadData(data, function() {
             core.setLocalStorage('savePage', core.status.savePage);
             core.drawTip("读档成功");
@@ -2894,519 +2594,6 @@ core.prototype.loadData = function (data, callback) {
     core.upload(1500);
 }
 
-core.prototype.openSettings = function (need) {
-    if (!core.checkStatus('settings', need))
-        return;
-
-    var background = core.canvas.ui.createPattern(core.material.ground, "repeat");
-    core.clearMap('ui', 0, 0, 416, 416);
-    core.setAlpha('ui', 1);
-    core.setFillStyle('ui', background);
-    var left = 97, top = 64, right = 416 - 2 * left, bottom = 416 - 2 * top;
-    core.fillRect('ui', left, top, right, bottom, background);
-    core.strokeRect('ui', left - 1, top - 1, right + 1, bottom + 1, '#FFFFFF', 2);
-
-    // 名称
-    core.events.drawUISettings(left, top, right, bottom);
-}
-
-core.prototype.selectShop = function (need) {
-
-    if (core.isset(need) && !core.checkStatus('selectShop', need))
-        return;
-
-    core.status.event.id = 'selectShop';
-    var background = core.canvas.ui.createPattern(core.material.ground, "repeat");
-    core.clearMap('ui', 0, 0, 416, 416);
-    core.setAlpha('ui', 1);
-    core.setFillStyle('ui', background);
-
-    var shopList = core.status.shops, keys = Object.keys(shopList);
-    var len = keys.length + 1;
-    if (len % 2 == 0) len++;
-
-    var left = 97, top = 208 - 32 - 16 * len, right = 416 - 2 * left, bottom = 416 - 2 * top;
-    core.fillRect('ui', left, top, right, bottom, background);
-    core.strokeRect('ui', left - 1, top - 1, right + 1, bottom + 1, '#FFFFFF', 2);
-
-    core.canvas.ui.textAlign = "center";
-    for (var i = 0; i < keys.length; i++) {
-        core.fillText('ui', shopList[keys[i]].name, 208, top + 56 + 32 * i, "#FFFFFF", "bold 17px Verdana");
-    }
-
-    core.fillText('ui', "返回游戏", 208, top + bottom - 40);
-
-}
-
-core.prototype.openShop = function (id) {
-    var shop = core.status.shops[id];
-    // 正在移动中...
-    if (!core.status.heroStop) {
-        setTimeout(function () {
-            core.openShop(id);
-        }, 30);
-        return;
-    }
-    core.status.event.data = shop;
-    core.status.event.id = 'shop';
-    core.lockControl();
-    shop.visited = true;
-
-    var background = core.canvas.ui.createPattern(core.material.ground, "repeat");
-
-    var times = shop.times, need = eval(shop.need);
-
-    clearInterval(core.interval.tipAnimate);
-    core.clearMap('data', 0, 0, 416, 416);
-    core.setOpacity('data', 1);
-
-    core.clearMap('ui', 0, 0, 416, 416);
-    core.setAlpha('ui', 1);
-    core.setFillStyle('ui', background);
-
-    var left = 97, top = 64, right = 416 - 2 * left, bottom = 416 - 2 * top;
-    core.fillRect('ui', left, top, right, bottom, background);
-    core.strokeRect('ui', left - 1, top - 1, right + 1, bottom + 1, '#FFFFFF', 2);
-
-    // 名称
-    core.canvas.ui.textAlign = "center";
-    core.fillText('ui', shop.title, left + 135, top + 34, '#FFFFFF', 'bold 19px Verdana');
-
-    // 动画
-    core.strokeRect('ui', left + 15 - 1, top + 30 - 1, 34, 34, '#DDDDDD', 2);
-    core.status.boxAnimateObjs = [];
-    core.status.boxAnimateObjs.push({
-        'bgx': left + 15, 'bgy': top + 30, 'bgsize': 32,
-        'image': core.material.images.npcs,
-        'x': left + 15, 'y': top + 30, 'icon': core.material.icons.npcs[shop.icon]
-    });
-    core.setBoxAnimate(core.firstData.animateSpeed);
-
-    // 对话
-    core.canvas.ui.textAlign = "left";
-    if (need<0) need="若干";
-    var use = shop.use=='experience'?"经验":"金币";
-    core.fillText('ui', "勇敢的武士啊，给我" + need, left + 60, top + 65, '#FFFFFF', 'bold 14px Verdana');
-    core.fillText('ui', use + "你就可以：", left + 60, top + 83);
-
-    // 选项
-    core.canvas.ui.textAlign = "center";
-    for (var i = 0; i < shop.choices.length; i++) {
-        var choice = shop.choices[i];
-        var text = choice.text;
-        if (core.isset(choice.need))
-            text += "（"+eval(choice.need)+use+"）"
-        core.fillText('ui', text, 208, top + 120 + 32 * i, "#FFFFFF", "bold 17px Verdana");
-    }
-    core.fillText('ui', "退出商店", 208, top + 248);
-
-}
-
-core.prototype.closePanel = function (clearData) {
-    core.status.boxAnimateObjs = [];
-    core.setBoxAnimate(core.firstData.animateSpeed);
-    core.clearMap('ui', 0, 0, 416, 416);
-    core.setAlpha('ui', 1.0);
-    if (core.isset(clearData) && clearData)
-        core.clearMap('data', 0, 0, 416, 416);
-    core.unLockControl();
-    core.status.event.data = null;
-    core.status.event.id = null;
-}
-
-core.prototype.waiting = function(text) {
-
-    core.lockControl();
-    core.status.event.id = 'waiting';
-
-    var background = core.canvas.ui.createPattern(core.material.ground, "repeat");
-    core.clearMap('ui', 0, 0, 416, 416);
-    core.setAlpha('ui', 1);
-    core.setFillStyle('ui', background);
-
-    var left = 97, top = 208 - 32 - 16, right = 416 - 2 * left, bottom = 416 - 2 * top;
-    core.fillRect('ui', left, top, right, bottom, background);
-    core.strokeRect('ui', left - 1, top - 1, right + 1, bottom + 1, '#FFFFFF', 2);
-
-    core.canvas.ui.textAlign = "center";
-    core.fillText('ui', text, 208, top + 56, "#FFFFFF", "bold 17px Verdana");
-
-}
-
-// 同步存档
-core.prototype.syncSave = function () {
-
-    core.status.event.id = 'syncSave';
-    var background = core.canvas.ui.createPattern(core.material.ground, "repeat");
-    core.clearMap('ui', 0, 0, 416, 416);
-    core.setAlpha('ui', 1);
-    core.setFillStyle('ui', background);
-
-    var left = 97, top = 208 - 32 - 16 * 3, right = 416 - 2 * left, bottom = 416 - 2 * top;
-    core.fillRect('ui', left, top, right, bottom, background);
-    core.strokeRect('ui', left - 1, top - 1, right + 1, bottom + 1, '#FFFFFF', 2);
-
-    core.canvas.ui.textAlign = "center";
-    core.fillText('ui', "同步存档到服务器", 208, top + 56, "#FFFFFF", "bold 17px Verdana");
-    core.fillText('ui', "从服务器加载存档", 208, top + 56 + 32, "#FFFFFF", "bold 17px Verdana");
-    core.fillText('ui', "返回游戏", 208, top + bottom - 40);
-}
-
-core.prototype.getCurrentEnemys = function () {
-    var enemys = [];
-    var used = {};
-    var mapBlocks = core.status.thisMap.blocks;
-    for (var b = 0; b < mapBlocks.length; b++) {
-        if (core.isset(mapBlocks[b].event) && mapBlocks[b].event.cls == 'enemys') {
-            var monsterId = mapBlocks[b].event.id;
-            if (core.isset(used[monsterId])) continue;
-
-            var monster = core.material.enemys[monsterId];
-            var mon_def = monster.def;
-            // 坚固
-            if (monster.special==3 && mon_def<core.status.hero.atk-1)
-                mon_def = core.status.hero.atk-1;
-
-            enemys.push({
-                'id': monsterId, 'name': monster.name, 'hp': monster.hp, 'atk': monster.atk, 'def': mon_def,
-                'money': monster.money, 'experience': monster.experience, 'special': core.enemys.getSpecialText(monsterId),
-                'damage': core.getDamage(monsterId), 'critical': core.getCritical(monsterId),
-                'criticalDamage': core.getCriticalDamage(monsterId), 'defDamage': core.getDefDamage(monsterId)
-            });
-
-            used[monsterId] = true;
-        }
-    }
-
-    enemys.sort(function (a, b) {
-        if (a.damage == b.damage) {
-            return a.money - b.money;
-        }
-        return a.damage - b.damage;
-    });
-    return enemys;
-}
-
-core.prototype.drawEnemyBook = function (page) {
-
-    var enemys = core.getCurrentEnemys();
-    var background = core.canvas.ui.createPattern(core.material.ground, "repeat");
-
-    clearInterval(core.interval.tipAnimate);
-    core.clearMap('data', 0, 0, 416, 416);
-    core.setOpacity('data', 1);
-
-    core.clearMap('ui', 0, 0, 416, 416);
-    core.setAlpha('ui', 1);
-    core.setFillStyle('ui', background);
-    core.fillRect('ui', 0, 0, 416, 416);
-
-    core.setAlpha('ui', 0.6);
-    core.setFillStyle('ui', '#000000');
-    core.fillRect('ui', 0, 0, 416, 416);
-
-    core.setAlpha('ui', 1);
-    core.canvas.ui.textAlign = 'left';
-    core.setFont('ui', 'bold 15px Verdana');
-
-    if (enemys.length == 0) {
-        core.fillText('ui', "本层无怪物", 83, 222, '#999999', "bold 50px Verdana");
-        // 退出
-        core.canvas.ui.textAlign = 'center';
-        core.fillText('ui', '返回游戏', 370, 403,'#DDDDDD', 'bold 15px Verdana');
-        return;
-    }
-
-    var perpage = 6;
-    var totalPage = parseInt((enemys.length - 1) / perpage) + 1;
-    if (page < 1) page = 1;
-    if (page > totalPage) page = totalPage;
-    core.status.event.data = page;
-    var start = (page - 1) * perpage, end = Math.min(page * perpage, enemys.length);
-
-    enemys = enemys.slice(start, end);
-    core.status.boxAnimateObjs = [];
-    for (var i = 0; i < enemys.length; i++) {
-        // 边框
-        var enemy = enemys[i];
-        core.strokeRect('ui', 22, 62 * i + 22, 42, 42, '#DDDDDD', 2);
-
-        // 怪物
-        core.status.boxAnimateObjs.push({
-            'bgx': 22, 'bgy': 62 * i + 22, 'bgsize': 42,
-            'image': core.material.images.enemys,
-            'x': 27, 'y': 62 * i + 27, 'icon': core.material.icons.enemys[enemy.id]
-        });
-
-        // 数据
-        core.canvas.ui.textAlign = "center";
-        core.fillText('ui', enemy.name, 115, 62 * i + 47, '#DDDDDD', 'bold 17px Verdana');
-        core.canvas.ui.textAlign = "left";
-        core.fillText('ui', '生命', 165, 62 * i + 32, '#DDDDDD', '13px Verdana');
-        core.fillText('ui', enemy.hp, 195, 62 * i + 32, '#DDDDDD', 'bold 13px Verdana');
-        core.fillText('ui', '攻击', 255, 62 * i + 32, '#DDDDDD', '13px Verdana');
-        core.fillText('ui', enemy.atk, 285, 62 * i + 32, '#DDDDDD', 'bold 13px Verdana');
-        core.fillText('ui', '防御', 335, 62 * i + 32, '#DDDDDD', '13px Verdana');
-        core.fillText('ui', enemy.def, 365, 62 * i + 32, '#DDDDDD', 'bold 13px Verdana');
-        core.fillText('ui', '金币', 165, 62 * i + 50, '#DDDDDD', '13px Verdana');
-        core.fillText('ui', enemy.money, 195, 62 * i + 50, '#DDDDDD', 'bold 13px Verdana');
-
-        var damage_offset = 326;
-        if (core.firstData.enableExperience) {
-            core.canvas.ui.textAlign = "left";
-            core.fillText('ui', '经验', 255, 62 * i + 50, '#DDDDDD', '13px Verdana');
-            core.fillText('ui', enemy.experience, 285, 62 * i + 50, '#DDDDDD', 'bold 13px Verdana');
-            damage_offset = 361;
-        }
-
-        core.canvas.ui.textAlign = "center";
-        var damage = enemy.damage;
-        var color = '#FFFF00';
-        if (damage >= core.status.hero.hp) color = '#FF0000';
-        if (damage == 0) color = '#00FF00';
-        if (damage >= 999999999) damage = '无法战斗';
-        var length = core.canvas.ui.measureText(damage).width;
-        core.fillText('ui', damage, damage_offset, 62 * i + 50, color, 'bold 13px Verdana');
-
-        core.canvas.ui.textAlign = "left";
-        // 属性
-        if (enemy.special != '') {
-            core.setFont('data', 'bold 12px Verdana');
-            var length = core.canvas.data.measureText(enemy.special).width;
-            core.setAlpha('data', '0.4');
-            core.fillRect('data', 64 - 4 - length, 62 * i + 46, length + 4, 17, '#000000');
-            core.setAlpha('data', '1');
-            core.fillText('data', enemy.special, 64 - 2 - length, 62 * i + 59, '#FF6A6A', 'bold 12px Verdana')
-        }
-
-        core.fillText('ui', '临界', 165, 62 * i + 68, '#DDDDDD', '13px Verdana');
-        core.fillText('ui', enemy.critical, 195, 62 * i + 68, '#DDDDDD', 'bold 13px Verdana');
-        core.fillText('ui', '减伤', 255, 62 * i + 68, '#DDDDDD', '13px Verdana');
-        core.fillText('ui', enemy.criticalDamage, 285, 62 * i + 68, '#DDDDDD', 'bold 13px Verdana');
-        core.fillText('ui', '1防', 335, 62 * i + 68, '#DDDDDD', '13px Verdana');
-        core.fillText('ui', enemy.defDamage, 365, 62 * i + 68, '#DDDDDD', 'bold 13px Verdana');
-
-    }
-    core.setBoxAnimate(core.firstData.animateSpeed);
-    core.drawPagination(page, totalPage);
-}
-
-core.prototype.drawPagination = function (page, totalPage) {
-
-    core.setFont('ui', 'bold 15px Verdana');
-    core.setFillStyle('ui', '#DDDDDD');
-
-    var length = core.canvas.ui.measureText(page + " / " + page).width;
-
-    core.canvas.ui.textAlign = 'left';
-    core.fillText('ui', page + " / " + totalPage, (416 - length) / 2, 403);
-
-    core.canvas.ui.textAlign = 'center';
-    if (page > 1)
-        core.fillText('ui', '上一页', 208 - 80, 403);
-    if (page < totalPage)
-        core.fillText('ui', '下一页', 208 + 80, 403);
-
-    // 退出
-    core.fillText('ui', '返回游戏', 370, 403);
-
-}
-
-core.prototype.drawFly = function(page) {
-
-    if (page<0) page=0;
-    if (page>=core.status.hero.flyRange.length) page=core.status.hero.flyRange.length-1;
-    core.status.event.data = page;
-
-    var floorId = core.status.hero.flyRange[page];
-    var title = core.status.maps[floorId].title;
-
-    core.clearMap('ui', 0, 0, 416, 416);
-    core.setAlpha('ui', 0.85);
-    core.fillRect('ui', 0, 0, 416, 416, '#000000');
-    core.setAlpha('ui', 1);
-    core.canvas.ui.textAlign = 'center';
-    core.fillText('ui', '楼层跳跃', 208, 60, '#FFFFFF', "bold 28px Verdana");
-    core.fillText('ui', '返回游戏', 208, 403, '#FFFFFF', "bold 15px Verdana")
-    core.fillText('ui', title, 356, 247, '#FFFFFF', "bold 19px Verdana");
-    if (page<core.status.hero.flyRange.length-1)
-        core.fillText('ui', '▲', 356, 247-64, '#FFFFFF', "17px Verdana");
-    if (page>0)
-        core.fillText('ui', '▼', 356, 247+64, '#FFFFFF', "17px Verdana");
-    core.strokeRect('ui', 20, 100, 273, 273, '#FFFFFF', 2);
-    core.drawThumbnail('ui', core.status.maps[floorId].blocks, 20, 100, 273);
-}
-
-core.prototype.drawToolbox = function(selectId) {
-
-    if (!core.hasItem(selectId))
-        selectId=null;
-    core.status.event.data=selectId;
-
-    core.clearMap('ui', 0, 0, 416, 416);
-    core.setAlpha('ui', 0.85);
-    core.fillRect('ui', 0, 0, 416, 416, '#000000');
-    core.setAlpha('ui', 1);
-    core.setFillStyle('ui', '#DDDDDD');
-    core.setStrokeStyle('ui', '#DDDDDD');
-    core.canvas.ui.lineWidth = 2;
-    core.canvas.ui.strokeWidth = 2;
-
-    // 画线
-    core.canvas.ui.beginPath();
-    core.canvas.ui.moveTo(0, 130);
-    core.canvas.ui.lineTo(416, 130);
-    core.canvas.ui.stroke();
-    core.canvas.ui.beginPath();
-    core.canvas.ui.moveTo(0,129);
-    core.canvas.ui.lineTo(0,105);
-    core.canvas.ui.lineTo(72,105);
-    core.canvas.ui.lineTo(102,129);
-    core.canvas.ui.fill();
-
-    core.canvas.ui.beginPath();
-    core.canvas.ui.moveTo(0, 290);
-    core.canvas.ui.lineTo(416, 290);
-    core.canvas.ui.stroke();
-    core.canvas.ui.beginPath();
-    core.canvas.ui.moveTo(0,289);
-    core.canvas.ui.lineTo(0,265);
-    core.canvas.ui.lineTo(72,265);
-    core.canvas.ui.lineTo(102,289);
-    core.canvas.ui.fill();
-
-    // 文字
-    core.canvas.ui.textAlign = 'left';
-    core.fillText('ui', "消耗道具", 5, 124, '#333333', "bold 16px Verdana");
-    core.fillText('ui', "永久道具", 5, 284);
-
-    // 描述
-    if (core.isset(selectId)) {
-        var item=core.material.items[selectId];
-        core.fillText('ui', item.name, 10, 32, '#FFD700', "bold 20px Verdana")
-        core.fillText('ui', item.text, 10, 62, '#FFFFFF', '17px Verdana');
-        core.fillText('ui', '<继续点击该道具即可进行使用>', 10, 89, '#CCCCCC', '14px Verdana');
-    }
-
-    core.canvas.ui.textAlign = 'right';
-    var images = core.material.images.items;
-    // 消耗道具
-    var tools = Object.keys(core.status.hero.items.tools).sort();
-    for (var i=0;i<tools.length;i++) {
-        var tool=tools[i];
-        var icon=core.material.icons.items[tool];
-        if (i<6) {
-            core.canvas.ui.drawImage(images, 0, icon.loc*icon.size, icon.size, icon.size, 16*(4*i+1)+5, 144+5, icon.size, icon.size)
-            // 个数
-            core.fillText('ui', core.itemCount(tool), 16*(4*i+1)+40, 144+38, '#FFFFFF', "bold 14px Verdana");
-            if (selectId == tool)
-                core.strokeRect('ui', 16*(4*i+1)+1, 144+1, icon.size+8, icon.size+8, '#FFD700');
-        }
-        else {
-            core.canvas.ui.drawImage(images, 0, icon.loc*icon.size, icon.size, icon.size, 16*(4*(i-6)+1)+5, 144+64+5, icon.size, icon.size)
-            if (selectId == tool)
-                core.strokeRect('ui', 16*(4*(i-6)+1)+1, 144+64+1, icon.size+8, icon.size+8, '#FFD700');
-
-        }
-    }
-
-    // 永久道具
-    var constants = Object.keys(core.status.hero.items.constants).sort();
-    for (var i=0;i<constants.length;i++) {
-        var constant=constants[i];
-        var icon=core.material.icons.items[constant];
-        if (i<6) {
-            core.canvas.ui.drawImage(images, 0, icon.loc*icon.size, icon.size, icon.size, 16*(4*i+1)+5, 304+5, icon.size, icon.size)
-            // core.fillText('ui', core.itemCount(constant), 16*(4*i+1)+40, 304+38, '#FFFFFF', "bold 16px Verdana")
-            if (selectId == constant)
-                core.strokeRect('ui', 16*(4*i+1)+1, 304+1, icon.size+8, icon.size+8, '#FFD700');
-        }
-        else {
-            core.canvas.ui.drawImage(images, 0, icon.loc*icon.size, icon.size, icon.size, 16*(4*(i-6)+1)+5, 304+64+5, icon.size, icon.size)
-            if (selectId == constant)
-                core.strokeRect('ui', 16*(4*(i-6)+1)+1, 304+64+1, icon.size+8, icon.size+8, '#FFD700');
-        }
-    }
-
-    // 退出
-    core.canvas.ui.textAlign = 'center';
-    core.fillText('ui', '返回游戏', 370, 403,'#DDDDDD', 'bold 15px Verdana');
-}
-
-core.prototype.drawSLPanel = function(page) {
-
-    if (page<0) page=0;
-    if (page>=30) page=29;
-    core.status.event.data = page;
-    core.status.savePage = page;
-
-    core.clearMap('ui', 0, 0, 416, 416);
-    core.setAlpha('ui', 0.85);
-    core.fillRect('ui', 0, 0, 416, 416, '#000000');
-    core.setAlpha('ui', 1);
-    core.canvas.ui.textAlign = 'center';
-
-    var u=416/6, size=117;
-
-    for (var i=0;i<6;i++) {
-        var id=6*page+i+1;
-        var data=core.getLocalStorage("save"+id,null);
-
-        if (i<3) {
-            core.fillText('ui', '存档'+id, (2*i+1)*u, 35, '#FFFFFF', "bold 17px Verdana");
-            core.strokeRect('ui', (2*i+1)*u-size/2, 50, size, size, '#FFFFFF', 2);
-            if (core.isset(data) && core.isset(data.floorId)) {
-                core.drawThumbnail('ui', core.maps.load(data.maps, data.floorId).blocks, (2*i+1)*u-size/2, 50, size, data.hero.loc, data.hero.id);
-                core.fillText('ui', core.formatDate(new Date(data.time)), (2*i+1)*u, 65+size, '#FFFFFF', '10px Verdana');
-            }
-            else {
-                core.fillRect('ui', (2*i+1)*u-size/2, 50, size, size, '#333333', 2);
-                core.fillText('ui', '空', (2*i+1)*u, 117, '#FFFFFF', 'bold 30px Verdana');
-            }
-        }
-        else {
-            core.fillText('ui', '存档'+id, (2*i-5)*u, 230, '#FFFFFF', "bold 17px Verdana");
-            core.strokeRect('ui', (2*i-5)*u-size/2, 245, size, size, '#FFFFFF', 2);
-            if (core.isset(data) && core.isset(data.floorId)) {
-                core.drawThumbnail('ui', core.maps.load(data.maps, data.floorId).blocks, (2*i-5)*u-size/2, 245, size, data.hero.loc, data.hero.id);
-                core.fillText('ui', core.formatDate(new Date(data.time)), (2*i-5)*u, 260+size, '#FFFFFF', '10px Verdana');
-            }
-            else {
-                core.fillRect('ui', (2*i-5)*u-size/2, 245, size, size, '#333333', 2);
-                core.fillText('ui', '空', (2*i-5)*u, 245+70, '#FFFFFF', 'bold 30px Verdana');
-            }
-        }
-    }
-    core.drawPagination(page+1, 30);
-}
-
-core.prototype.drawThumbnail = function(canvas, blocks, x, y, size, heroLoc, heroId) {
-    core.clearMap(canvas, x, y, size, size);
-    var persize = size/13;
-    for (var i=0;i<13;i++) {
-        for (var j=0;j<13;j++) {
-            var blockIcon = core.material.icons.terrains.ground;
-            var blockImage = core.material.images.terrains;
-            core.canvas[canvas].drawImage(blockImage, 0, blockIcon.loc * blockIcon.size, blockIcon.size, blockIcon.size, x + i * persize, y + j * persize, persize, persize);
-        }
-    }
-    for (var b in blocks) {
-        var block = blocks[b];
-        if (core.isset(block.event)) {
-            var i = block.x, j = block.y;
-            var blockIcon = core.material.icons[block.event.cls][block.event.id];
-            var blockImage = core.material.images[block.event.cls];
-            //core.canvas[canvas].clearRect(x + i * persize, y + j * persize, persize, persize);
-            core.canvas[canvas].drawImage(blockImage, 0, blockIcon.loc * blockIcon.size, blockIcon.size, blockIcon.size, x + i * persize, y + j * persize, persize, persize);
-        }
-    }
-    if (core.isset(heroLoc)) {
-        var id = core.isset(heroId)?heroId:core.status.hero.id;
-        var heroIcon = core.material.icons.heros[id][heroLoc.direction];
-        core.canvas[canvas].drawImage(core.material.images.heros, heroIcon.loc['stop'] * heroIcon.size, heroIcon.loc.iconLoc * heroIcon.size, heroIcon.size, heroIcon.size, x+persize*heroLoc.x, y+persize*heroLoc.y, persize, persize);
-    }
-}
-
 core.prototype.setStatus = function (statusName, statusVal) {
     if (core.isset(core.status.hero[statusName])) {
         core.status.hero[statusName] = statusVal;
@@ -3417,43 +2604,6 @@ core.prototype.getStatus = function (statusName) {
     if (core.isset(core.status.hero[statusName])) {
         return core.status.hero[statusName];
     }
-}
-
-core.prototype.clearStatusBar = function() {
-    var statusList = ['floor', 'hp', 'atk', 'def', /*'mdef',*/ 'money', 'experience', 'yellowKey', 'blueKey', 'redKey', 'hard'];
-    statusList.forEach(function (e) {
-        core.statusBar[e].innerHTML = "";
-    });
-    core.statusBar.image.book.style.opacity = 0.3;
-    core.statusBar.image.fly.style.opacity = 0.3;
-}
-
-core.prototype.updateStatusBar = function () {
-
-    // 上限999999
-    core.setStatus('hp', Math.min(999999, core.getStatus('hp')));
-
-    // core.statusBar.floor.innerHTML = core.maps.maps[core.status.floorId].name;
-    var statusList = ['hp', 'atk', 'def', /*'mdef',*/ 'money', 'experience'];
-    statusList.forEach(function (item) {
-        core.statusBar[item].innerHTML = core.getStatus(item);
-    });
-    var keys = ['yellowKey', 'blueKey', 'redKey'];
-    keys.forEach(function (key) {
-        core.statusBar[key].innerHTML = core.setTwoDigits(core.status.hero.items.keys[key]);
-    })
-    core.statusBar.hard.innerHTML = "Lv" + core.status.hard;
-    if (core.hasItem('book')) {
-        core.statusBar.image.book.style.opacity = 1;
-    } else {
-        core.statusBar.image.book.style.opacity = 0.3;
-    }
-    if (core.hasItem('fly')) {
-        core.statusBar.image.fly.style.opacity = 1;
-    } else {
-        core.statusBar.image.fly.style.opacity = 0.3;
-    }
-    core.updateFg();
 }
 
 core.prototype.lockControl = function () {
@@ -3469,35 +2619,6 @@ core.prototype.isset = function (val) {
         return false;
     }
     return true
-}
-
-core.prototype.getClickLoc = function (x, y) {
-
-    if (!core.isset(core.position.canvas.top)) return null;
-
-    var statusBar = {'x': 0, 'y': 0};
-    var size = 32;
-    size = size * core.position.scale;
-    
-    switch (core.position.screenMode) {// 这里的3是指statusBar和游戏画布之间的白线宽度
-        case 'vertical':
-            statusBar.x = 0;
-            statusBar.y = core.position.statusBar.height + 3;
-            break;
-        case 'horizontal':
-            statusBar.x = core.position.statusBar.width + 3;
-            console.log(core.position.statusBar.width)
-            statusBar.y = 0;
-            break;
-        case 'bigScreen':
-            statusBar.x = core.position.statusBar.width + 3;
-            statusBar.y = 0;
-            break;
-    }
-    var left = core.dom.gameGroup.offsetLeft + statusBar.x;
-    var top = core.dom.gameGroup.offsetTop + statusBar.y;
-    var loc={'x': x - left, 'y': y - top, 'size': size};
-    return loc;
 }
 
 core.prototype.playSound = function (soundName, soundType) {
@@ -3582,6 +2703,51 @@ core.prototype.hide = function (obj, speed, callback) {
             }
         }
     }, speed);
+}
+
+
+////// 状态栏相关 //////
+
+core.prototype.clearStatusBar = function() {
+    var statusList = ['floor', 'hp', 'atk', 'def', /*'mdef',*/ 'money', 'experience', 'yellowKey', 'blueKey', 'redKey', 'hard'];
+    statusList.forEach(function (e) {
+        core.statusBar[e].innerHTML = "";
+    });
+    core.statusBar.image.book.style.opacity = 0.3;
+    core.statusBar.image.fly.style.opacity = 0.3;
+}
+
+/**
+ * 更新状态栏
+ */
+core.prototype.updateStatusBar = function () {
+
+    // 上限999999
+    if (core.flags.HPMAX>0) {
+        core.setStatus('hp', Math.min(core.flags.HPMAX, core.getStatus('hp')));
+    }
+
+    // core.statusBar.floor.innerHTML = core.maps.maps[core.status.floorId].name;
+    var statusList = ['hp', 'atk', 'def', /*'mdef',*/ 'money', 'experience'];
+    statusList.forEach(function (item) {
+        core.statusBar[item].innerHTML = core.getStatus(item);
+    });
+    var keys = ['yellowKey', 'blueKey', 'redKey'];
+    keys.forEach(function (key) {
+        core.statusBar[key].innerHTML = core.setTwoDigits(core.status.hero.items.keys[key]);
+    })
+    core.statusBar.hard.innerHTML = "Lv" + core.status.hard;
+    if (core.hasItem('book')) {
+        core.statusBar.image.book.style.opacity = 1;
+    } else {
+        core.statusBar.image.book.style.opacity = 0.3;
+    }
+    if (core.hasItem('fly')) {
+        core.statusBar.image.fly.style.opacity = 1;
+    } else {
+        core.statusBar.image.fly.style.opacity = 0.3;
+    }
+    core.updateFg();
 }
 
 core.prototype.resize = function(clientWidth, clientHeight) {
