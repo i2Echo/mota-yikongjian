@@ -74,8 +74,24 @@ html, body {
 }
 
 #startBackground {
+    position:absolute;
+    top:50%;
+    left:50%;
+    height: 100%;
+    width: auto;
+    transform:translate(-50%,-50%);
+    z-index: 9;
+}
+
+#startLogo {
     position: absolute;
     z-index: 9;
+    left: 0;
+    right: 0;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 8%;
+    max-width: 100%;
 }
 
 #startTitle {
@@ -89,9 +105,19 @@ html, body {
     text-align: center;
     font-size: 1.4rem;
     background-color: #000;
-    opacity: 0.7;
+    opacity: 0.85;
     display: none;
     z-index: 9;
+    bottom: 0;
+    margin-bottom: 7%;
+}
+
+#startButtons {
+    display: block;
+}
+
+#levelChooseButtons {
+    display: none;
 }
 
 .startButton {
@@ -114,6 +140,7 @@ html, body {
     top: 0;
     right: 0;
     text-align: center;
+    display: none;
     color: #fff;
     background-color: #000;
     z-index: 7;

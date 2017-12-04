@@ -12,11 +12,8 @@ icons.prototype.init = function () {
                 'up': {'loc': {'iconLoc': 3, 'stop': 0, 'leftFoot': 1, 'rightFoot': 2}, 'size': 32}
             }
         },
-        'empty': {
-            'empty': {'size': 32}
-        },
         'terrains': {
-            'blackFloor': {'loc': 0, 'size': 32},
+            'ground': {'loc': 0, 'size': 32},
             'yellowWall': {'loc': 1, 'size': 32},
             'whiteWall': {'loc': 2, 'size': 32},
             'blueWall': {'loc': 3, 'size': 32},

@@ -10,29 +10,29 @@ function main() {
         'startTopProgress': document.getElementById('startTopProgress'),
         'startTopLoadTips': document.getElementById('startTopLoadTips'),
         'startBackground': document.getElementById('startBackground'),
-        // 'startButtonGroup': document.getElementById('startButtonGroup'),
+        'startButtonGroup': document.getElementById('startButtonGroup'),
         'floorMsgGroup': document.getElementById('floorMsgGroup'),
         'versionLabel': document.getElementById('versionLabel'),
         'floorNameLabel': document.getElementById('floorNameLabel'),
         'statusBar': document.getElementById('statusBar'),
         'toolBar': document.getElementById('toolBar'),
         'gameCanvas': document.getElementsByClassName('gameCanvas'),
+        'startButtons': document.getElementById('startButtons'),
         'playGame': document.getElementById('playGame'),
         'loadGame': document.getElementById('loadGame'),
         'aboutGame': document.getElementById('aboutGame'),
+        'levelChooseButtons': document.getElementById('levelChooseButtons'),
+        'easyLevel': document.getElementById('easyLevel'),
+        'normalLevel': document.getElementById('normalLevel'),
+        'hardLevel': document.getElementById('hardLevel'),
         'data': document.getElementById('data'),
         'statusLabels': document.getElementsByClassName('statusLabel')
     };
     // console.log('加载游戏容器和开始界面dom对象完成 如下');
     // console.log(this.dom);
     this.loadList = [
-        'items',
-        'icons',
-        'maps',
-        'enemys',
-        'events',
-        'npcs',
-        'core'
+        'items', 'icons', 'maps', 'enemys', 'events',
+        'npcs', 'data', 'ui', 'core'
     ];
     // console.log('加载js文件列表加载完成' + this.loadList);
     this.images = [
@@ -53,6 +53,7 @@ function main() {
             'book': document.getElementById("img-book"),
             'fly': document.getElementById("img-fly"),
             'toolbox': document.getElementById("img-toolbox"),
+            'shop': document.getElementById("img-shop"),
             'save': document.getElementById("img-save"),
             'load': document.getElementById("img-load"),
             'settings': document.getElementById("img-settings")
@@ -72,96 +73,6 @@ function main() {
     // console.log('存储实例变量已声明');
     this.canvas = {};
     // console.log('存储canvas变量已声明');
-    this.firstData = {
-        'name': 'yikongjian',
-        'version': 'Ver 1.0.0 (Beta)',
-        'floorId': 'MT1',
-        'enableExperience': true,
-        'hero': {
-            'id': 'hero1',
-            'name': '勇士',
-            'hp': 1000,
-            'atk': 10,
-            'def': 10,
-            'mdef': 0,
-            'money': 0,
-            'experience': 0,
-            'items': {
-                'keys': {
-                    'yellowKey': 0,
-                    'blueKey': 0,
-                    'redKey': 0
-                },
-                'constants': {},
-                'tools': {}
-            },
-            'flyRange': ['MT1'],
-            'loc': {'direction': 'up', 'x': 6, 'y': 11},
-            'steps': 0,
-            'time': {
-                'starttime': new Date(),
-                'playtime': 0,
-                'totaltime': 0,
-                'lasttime': new Date()
-            },
-            'flags': {
-                'passLava': false, // 经过岩浆则禁用商店
-                'hasShield5': false, // 有神圣盾
-                'seal20F': false // 20F封印
-            }
-        },
-        'hard': 10,
-        'shops': {
-            'shop1': {
-                'id': 'shop1', 'title': '贪婪之神', 'name': '3楼金币商店', 'icon': 'blueShop',
-                'times': 0, 'need': "25", 'visited': false, 'use': 'money',
-                'choices': [
-                    {'text': '生命+800', 'effect': 'status,hp,800'},
-                    {'text': '攻击+4', 'effect': 'status,atk,4'},
-                    {'text': '防御+4', 'effect': 'status,def,4'}
-                ]
-            },
-            'shop2': {
-                'id': 'shop2', 'title': '经验之神', 'name': '5楼经验商店', 'icon': 'redShop',
-                'times': 0, 'need': -1, 'visited': false, 'use': 'experience',
-                'choices': [
-                    {'text': '攻击+5', 'effect': 'status,atk,5', 'need': '30'},
-                    {'text': '防御+5', 'effect': 'status,def,5' ,'need': '30'},
-                    {'text': '等级+1', 'effect': 'status,hp,1000;status,atk,7;status,def,7', 'need': '100'}
-                ]
-            },
-            'shop3': {
-                'id': 'shop3', 'title': '钥匙商人', 'name': '6楼钥匙商人', 'icon': 'womanMagician',
-                'times': 0, 'need': -1, 'visited': false, 'use': 'money',
-                'choices': [
-                    {'text': '黄钥匙+1', 'effect': 'item,yellowKey,1', 'need': '10'},
-                    {'text': '蓝钥匙+1', 'effect': 'item,blueKey,1', 'need': '50'},
-                    {'text': '红钥匙+1', 'effect': 'item,redKey,1', 'need': '100'}
-                ]
-            },
-            'shop4': {
-                'id': 'shop4', 'title': '贪婪之神', 'name': '10楼金币商店', 'icon': 'blueShop',
-                'times': 0, 'need': "100", 'visited': false, 'use': 'money',
-                'choices': [
-                    {'text': '生命+4000', 'effect': 'status,hp,4000'},
-                    {'text': '攻击+20', 'effect': 'status,atk,20'},
-                    {'text': '防御+20', 'effect': 'status,def,20'}
-                ]
-            },
-            'shop5': {
-                'id': 'shop5', 'title': '经验之神', 'name': '15楼经验商店', 'icon': 'redShop',
-                'times': 0, 'need': -1, 'visited': false, 'use': 'experience',
-                'choices': [
-                    {'text': '攻击+17', 'effect': 'status,atk,17', 'need': '95'},
-                    {'text': '防御+17', 'effect': 'status,def,17' ,'need': '95'},
-                    {'text': '等级+3', 'effect': 'status,hp,3000;status,atk,21;status,def,21', 'need': '270'}
-                ]
-            },
-        },
-        'npcs': {},
-        'animateSpeed': 500
-    }
-    //console.log('初始数据已声明');
 }
 
 main.prototype.init = function () {
@@ -174,14 +85,18 @@ main.prototype.init = function () {
     main.loader(function () {
         var coreData = {};
         for (i = 0; i < main.loadList.length; i++) {
-            if (main.loadList[i] === 'core') {
+            var name = main.loadList[i];
+            // end with -min
+            if (name.indexOf(".min")==name.length-4)
+                name=name.substring(0, name.length-4);
+            if (name === 'core') {
                 continue;
             }
-            main[main.loadList[i]].init(main.dom);
-            coreData[main.loadList[i]] = main[main.loadList[i]];
+            main[name].init(main.dom);
+            coreData[name] = main[name];
             //console.log(main.loadList[i] + '函数对象初始化完成');
         }
-        main.core.init(main.dom, main.statusBar, main.canvas, main.images, main.sounds, main.firstData, coreData);
+        main.core.init(main.dom, main.statusBar, main.canvas, main.images, main.sounds, coreData);
         //console.log('core函数对象初始化完成');
         main.core.resize(main.dom.body.clientWidth, main.dom.body.clientHeight);
         //console.log('main函数对象初始化完成');
@@ -211,12 +126,16 @@ main.prototype.loader = function (callback) {
 
 main.prototype.loadMod = function (modName, callback) {
     var script = document.createElement('script');
+    var name = modName;
+    // end with -min
+    if (name.indexOf(".min")==name.length-4)
+        name=name.substring(0, name.length-4);
     script.src = 'libs/' + modName + '.js';
     main.dom.body.appendChild(script);
     script.onload = function () {
-        main[modName] = main.instance[modName];
+        main[name] = main.instance[name];
         //console.log('成功将' + modName + '.js 的实例对象转存到main的instance');
-        callback(modName);
+        callback(name);
     }
 }
 
@@ -228,15 +147,21 @@ var main = new main();
 main.init();
 
 window.onresize = function () {
-    main.core.resize(main.dom.body.clientWidth, main.dom.body.clientHeight);
+    try {
+        main.core.resize(main.dom.body.clientWidth, main.dom.body.clientHeight);
+    }catch (e) {}
 }
 
 main.dom.body.onkeydown = function(e) {
-	main.core.keyDown(e);
+    if (main.core.isPlaying())
+    	main.core.onkeyDown(e);
 }
 
 main.dom.body.onkeyup = function(e) {
-	main.core.keyUp(e);
+    try {
+        if (main.core.isPlaying())
+            main.core.onkeyUp(e);
+    } catch (e) {}
 }
 
 main.dom.body.onselectstart = function () {
@@ -256,41 +181,126 @@ document.ontouchstart = function() {
 }
 
 main.dom.data.onmousedown = function (e) {
-    e.stopPropagation();
-    var loc = main.core.getClickLoc(e.clientX, e.clientY);
-    if (loc==null) return;
-    var x = parseInt(loc.x / loc.size), y = parseInt(loc.y / loc.size);
-    main.core.onclick(x, y);
+    try {
+        e.stopPropagation();
+        var loc = main.core.getClickLoc(e.clientX, e.clientY);
+        if (loc == null) return;
+        var x = parseInt(loc.x / loc.size), y = parseInt(loc.y / loc.size);
+        //main.core.onclick(x, y, []);
+        main.core.ondown(x, y);
+    } catch (e) {}
+}
+
+main.dom.data.onmousemove = function (e) {
+    try {
+        e.stopPropagation();
+        var loc = main.core.getClickLoc(e.clientX, e.clientY);
+        if (loc == null) return;
+        var x = parseInt(loc.x / loc.size), y = parseInt(loc.y / loc.size);
+        main.core.onmove(x, y);
+    }catch (e) {}
+}
+
+main.dom.data.onmouseup = function () {
+    try {
+        main.core.onup();
+    }catch (e) {}
+}
+
+main.dom.data.onmousewheel = function(e) {
+    try {
+        if (e.wheelDelta)
+            main.core.onmousewheel(Math.sign(e.wheelDelta))
+        else if (e.detal)
+            main.core.onmousewheel(Math.sign(e.detail));
+    } catch (ee) {}
 }
 
 main.dom.data.ontouchstart = function (e) {
-    e.preventDefault();
-    var loc = main.core.getClickLoc(e.targetTouches[0].clientX, e.targetTouches[0].clientY);
-    if (loc==null) return;
-    var x = parseInt(loc.x / loc.size), y = parseInt(loc.y / loc.size);
-    main.core.onclick(x, y);
+    try {
+        e.preventDefault();
+        var loc = main.core.getClickLoc(e.targetTouches[0].clientX, e.targetTouches[0].clientY);
+        if (loc == null) return;
+        var x = parseInt(loc.x / loc.size), y = parseInt(loc.y / loc.size);
+        //main.core.onclick(x, y, []);
+        main.core.ondown(x, y);
+    }catch (e) {}
+}
+
+main.dom.data.ontouchmove = function (e) {
+    try {
+        e.preventDefault();
+        var loc = main.core.getClickLoc(e.targetTouches[0].clientX, e.targetTouches[0].clientY);
+        if (loc == null) return;
+        var x = parseInt(loc.x / loc.size), y = parseInt(loc.y / loc.size);
+        main.core.onmove(x, y);
+    }catch (e) {}
+}
+
+main.dom.data.ontouchend = function () {
+    try {
+        main.core.onup();
+    } catch (e) {
+    }
 }
 
 main.statusBar.image.book.onclick = function () {
-    main.core.openBook(true);
+    if (main.core.isPlaying())
+        main.core.openBook(true);
 }
 
 main.statusBar.image.fly.onclick = function (e) {
-    main.core.useFly(true);
+    if (main.core.isPlaying())
+        main.core.useFly(true);
 }
 
 main.statusBar.image.toolbox.onclick = function (e) {
-    main.core.openToolbox(true);
+    if (main.core.isPlaying())
+        main.core.openToolbox(true);
+}
+
+main.statusBar.image.shop.onclick = function () {
+    if (main.core.isPlaying())
+        main.core.ui.drawSelectShop(true);
 }
 
 main.statusBar.image.save.onclick = function (e) {
-    main.core.save(true);
+    if (main.core.isPlaying())
+        main.core.save(true);
 }
 
 main.statusBar.image.load.onclick = function (e) {
-    main.core.load(true);
+    if (main.core.isPlaying())
+        main.core.load(true);
 }
 
 main.statusBar.image.settings.onclick = function (e) {
-    main.core.openSettings(true);
+    if (main.core.isPlaying())
+        main.core.ui.drawSettings(true);
+}
+
+main.dom.playGame.onclick = function () {
+    main.dom.startButtons.style.display='none';
+    // main.dom.levelChooseButtons.style.display='block';
+    core.events.startGame();
+}
+
+main.dom.loadGame.onclick = function() {
+    main.core.load();
+}
+
+main.dom.aboutGame.onclick = function () {
+    main.core.ui.drawAbout();
+}
+
+main.dom.easyLevel.onclick = function() {
+    core.events.startGame('easy');
+}
+
+main.dom.normalLevel.onclick = function () {
+    core.events.startGame('normal');
+}
+
+main.dom.hardLevel.onclick = function () {
+    core.events.startGame('hard');
 }

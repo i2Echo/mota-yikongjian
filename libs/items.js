@@ -70,10 +70,10 @@ items.prototype.useItem = function (itemId) {
     // 永久道具
     if (itemCls == 'constants') {
         if (itemId=='book') {
-            core.drawEnemyBook(1);
+            core.ui.drawEnemyBook(1);
         }
         if (itemId=='fly') {
-            core.drawFly(core.status.hero.flyRange.indexOf(core.status.floorId));
+            core.ui.drawFly(core.status.hero.flyRange.indexOf(core.status.floorId));
         }
     }
     // 消耗道具
@@ -86,7 +86,7 @@ items.prototype.useItem = function (itemId) {
                 core.drawHero(core.getHeroLoc('direction'), core.getHeroLoc('x'), core.getHeroLoc('y'), 'stop');
                 core.updateFg();
                 core.drawTip(core.material.items[itemId].name + "使用成功");
-                if (itemId == 'bomb') {
+                if (itemId == 'bomb' && core.flags.bombTrigger) {
                     core.events.afterBattle();
                 }
             });
@@ -123,8 +123,26 @@ items.prototype.canUseItem = function (itemId) {
         var ids = [];
         for (var i in core.status.thisMap.blocks) {
             var block = core.status.thisMap.blocks[i];
-            if (core.isset(block.event) && block.event.id == 'yellowWall' && Math.abs(block.x-core.status.hero.loc.x)+Math.abs(block.y-core.status.hero.loc.y)<=1) {
-                ids.push(i);
+            if (core.isset(block.event) && block.event.id == 'yellowWall') {
+
+                // 四个方向
+                if (core.flags.picaxeFourDirections) {
+                    if (Math.abs(block.x-core.status.hero.loc.x)+Math.abs(block.y-core.status.hero.loc.y)<=1) {
+                        ids.push(i);
+                    }
+                }
+                else {
+                    // 获得勇士的下一个位置
+                    var scan = {
+                        'up': {'x': 0, 'y': -1},
+                        'left': {'x': -1, 'y': 0},
+                        'down': {'x': 0, 'y': 1},
+                        'right': {'x': 1, 'y': 0}
+                    };
+                    if (block.x == core.status.hero.loc.x+scan[core.status.hero.loc.direction].x && block.y == core.status.hero.loc.y+scan[core.status.hero.loc.direction].y) {
+                        ids.push(i);
+                    }
+                }
             }
         }
         if (ids.length>0) {

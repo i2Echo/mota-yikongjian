@@ -90,4 +90,140 @@ enemys.prototype.getSpecialText = function (enemyId) {
     return "";
 }
 
+enemys.prototype.getDamage = function (monsterId) {
+    var monster = core.material.enemys[monsterId];
+    var hero_atk = core.status.hero.atk, hero_def = core.status.hero.def, hero_mdef = core.status.hero.mdef;
+    var mon_hp = monster.hp, mon_atk = monster.atk, mon_def = monster.def, mon_special = monster.special;
+    var damage = this.calDamage(hero_atk, hero_def, hero_mdef, mon_hp, mon_atk, mon_def, mon_special);
+    var extra_damage = 0;
+    if (monster.special == 11) { // 吸血
+        // 吸血的比例
+        extra_damage = core.status.hero.hp * monster.value;
+
+        if (core.status.hero.flags.hasShield5) // 存在神圣盾
+            extra_damage /= 2;
+
+        extra_damage = parseInt(extra_damage);
+    }
+    return damage + extra_damage;
+}
+
+// 临界值计算
+enemys.prototype.getCritical = function (monsterId) {
+    var monster = core.material.enemys[monsterId];
+    if (monster.special == 3) return "???";
+    var last = this.calDamage(core.status.hero.atk, core.status.hero.def, core.status.hero.mdef,
+        monster.hp, monster.atk, monster.def, monster.special);
+    if (last == 0) return 0;
+
+    for (var i = core.status.hero.atk + 1; i <= monster.hp + monster.def; i++) {
+        var damage = this.calDamage(i, core.status.hero.def, core.status.hero.mdef,
+            monster.hp, monster.atk, monster.def, monster.special);
+        if (damage < last)
+            return i - core.status.hero.atk;
+        last = damage;
+    }
+    return 0;
+}
+
+// 临界减伤计算
+enemys.prototype.getCriticalDamage = function (monsterId) {
+    var c = this.getCritical(monsterId);
+    if (c == '???') return '???';
+    if (c == 0) return 0;
+    var monster = core.material.enemys[monsterId];
+    // if (c<=0) return 0;
+    var last = this.calDamage(core.status.hero.atk, core.status.hero.def, core.status.hero.mdef,
+        monster.hp, monster.atk, monster.def, monster.special);
+    if (last == 999999999) return '???';
+
+    return last - this.calDamage(core.status.hero.atk + c, core.status.hero.def, core.status.hero.mdef,
+        monster.hp, monster.atk, monster.def, monster.special);
+}
+
+// 1防减伤计算
+enemys.prototype.getDefDamage = function (monsterId) {
+    var monster = core.material.enemys[monsterId];
+    return this.calDamage(core.status.hero.atk, core.status.hero.def, core.status.hero.mdef,
+        monster.hp, monster.atk, monster.def, monster.special) -
+        this.calDamage(core.status.hero.atk, core.status.hero.def + 1, core.status.hero.mdef,
+            monster.hp, monster.atk, monster.def, monster.special)
+}
+
+enemys.prototype.calDamage = function (hero_atk, hero_def, hero_mdef, mon_hp, mon_atk, mon_def, mon_special) {
+    // 魔攻
+    if (mon_special == 2) hero_def = 0;
+    // 坚固
+    if (mon_special == 3 && mon_def < hero_atk - 1) mon_def = hero_atk - 1;
+    // 模仿
+    if (mon_special == 10) {
+        mon_atk = hero_atk;
+        mon_def = hero_def;
+    }
+    if (hero_atk <= mon_def) return 999999999;
+
+    var per_damage = mon_atk - hero_def;
+    if (per_damage < 0) per_damage = 0;
+    // 2连击 & 3连击
+
+    if (mon_special == 4) per_damage *= 2;
+    if (mon_special == 5) per_damage *= 3;
+    if (mon_special == 6) per_damage *= 4;
+    // 反击
+    if (mon_special == 8) per_damage += parseInt(0.1 * hero_atk);
+
+    // 先攻
+    var damage = mon_special == 1 ? per_damage : 0;
+    // 破甲
+    if (mon_special == 7) damage = parseInt(0.9 * hero_def);
+    // 净化
+    if (mon_special == 9) damage = 3 * hero_mdef;
+
+    var turn = parseInt((mon_hp - 1) / (hero_atk - mon_def));
+    var ans = damage + turn * per_damage;
+    ans -= hero_mdef;
+
+    // 魔防回血
+    // return ans;
+
+    // 魔防不回血
+    return ans <= 0 ? 0 : ans;
+}
+
+// 获得当前楼层的怪物列表
+enemys.prototype.getCurrentEnemys = function () {
+    var enemys = [];
+    var used = {};
+    var mapBlocks = core.status.thisMap.blocks;
+    for (var b = 0; b < mapBlocks.length; b++) {
+        if (core.isset(mapBlocks[b].event) && mapBlocks[b].event.cls == 'enemys') {
+            var monsterId = mapBlocks[b].event.id;
+            if (core.isset(used[monsterId])) continue;
+
+            var monster = core.material.enemys[monsterId];
+            var mon_def = monster.def;
+            // 坚固
+            if (monster.special==3 && mon_def<core.status.hero.atk-1)
+                mon_def = core.status.hero.atk-1;
+
+            enemys.push({
+                'id': monsterId, 'name': monster.name, 'hp': monster.hp, 'atk': monster.atk, 'def': mon_def,
+                'money': monster.money, 'experience': monster.experience, 'special': core.enemys.getSpecialText(monsterId),
+                'damage': this.getDamage(monsterId), 'critical': this.getCritical(monsterId),
+                'criticalDamage': this.getCriticalDamage(monsterId), 'defDamage': this.getDefDamage(monsterId)
+            });
+
+            used[monsterId] = true;
+        }
+    }
+
+    enemys.sort(function (a, b) {
+        if (a.damage == b.damage) {
+            return a.money - b.money;
+        }
+        return a.damage - b.damage;
+    });
+    return enemys;
+}
+
 main.instance.enemys = new enemys();
