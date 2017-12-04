@@ -348,7 +348,7 @@ events.prototype.clickShop = function(x,y) {
             core.npcEffect(choice.effect);
 
             core.status.event.data.times++;
-            core.ui.openShop(core.status.event.data.id);
+            core.ui.drawShop(core.status.event.data.id);
             return;
         }
 
@@ -379,7 +379,7 @@ events.prototype.clickSelectShop = function(x,y) {
                 else core.drawTip('该商店已失效');
                 return;
             }
-            core.ui.openShop(keys[y - topIndex]);
+            core.ui.drawShop(keys[y - topIndex]);
         }
         if (y == exitIndex) {
             core.ui.closePanel();
