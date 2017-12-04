@@ -817,7 +817,7 @@ core.prototype.onclick = function (x, y, stepPostfix) {
             }
         }
         if (x>=5 && x<=7 && y==7) {
-            core.ui.openSettings(false);
+            core.ui.drawSettings(false);
         }
     }
 
@@ -1000,12 +1000,12 @@ core.prototype.automaticRoute = function (destX, destY) {
     var nowDeep = 0;
     var route = [];
     var ans = []
-    
+
     if (destX == startX && destY == startY) return false;
     queue.push(13 * startX + startY);
     queue.push(-1);
     route[13 * startX + startY] = '';
-    
+
     while (queue.length != 1) {
         var f = queue.shift();
         if (f===-1) {nowDeep+=1;queue.push(-1);continue;}
@@ -1013,16 +1013,16 @@ core.prototype.automaticRoute = function (destX, destY) {
         if (deep!==nowDeep) {queue.push(f);continue;}
         f=f%169;
         var nowX = parseInt(f / 13), nowY = f % 13;
-    
+
         for (var direction in scan) {
-        
+
             var nx = nowX + scan[direction].x;
             var ny = nowY + scan[direction].y;
             if (nx<0 || nx>12 || ny<0 || ny>12) continue;
             var nid = 13 * nx + ny;
-    
+
             if (core.isset(route[nid])) continue;
-    
+
             if (nx == destX && ny == destY) {
                 route[nid] = direction;
                 break;
@@ -2803,7 +2803,7 @@ core.prototype.resize = function(clientWidth, clientHeight) {
 
     // 横屏状态下，默认StatusBar宽度（不计算边框）
     var statusBarWidth = 129;
-    
+
     //适配宽度阈值， 6为两倍的边框宽度
     var ADAPT_WIDTH = canvasWidth + 6;
 
@@ -2824,20 +2824,20 @@ core.prototype.resize = function(clientWidth, clientHeight) {
 
         if(!isHorizontal){ //竖屏
             core.position.screenMode = 'vertical';
-            
+
             statusBarHeight *= scale;
             toolBarHeight *= scale;
-    
+
             core.position.gameGroup = {
                 'width': canvasWidth,
                 'height': width+statusBarHeight+toolBarHeight,
-                'top': (clientHeight-width-statusBarHeight-toolBarHeight)/2, 
+                'top': (clientHeight-width-statusBarHeight-toolBarHeight)/2,
                 'left': 3
             }
-    
+
             // 这几项都是相对gameGroup的位置
             core.position.statusBar = {
-                'width': canvasWidth, 
+                'width': canvasWidth,
                 'height': statusBarHeight,
                 'top': 0,
                 'left': 0,
@@ -2849,22 +2849,22 @@ core.prototype.resize = function(clientWidth, clientHeight) {
                 'top': statusBarHeight, // 3px计算在内边框
                 'left': 0,
                 'borderLeft': '',
-                'borderTop': '3px #fff solid', 
+                'borderTop': '3px #fff solid',
                 'borderBottom': '3px #fff solid'
             }
             core.position.toolBar = {
-                'display': 'block', 
+                'display': 'block',
                 'width': canvasWidth, 'height': toolBarHeight,
                 'top': statusBarHeight + 3 + canvasWidth,
             }
-    
+
             var icon_firstline = 8 * scale, icon_secondline = 44 * scale;
             var icon_toolline = core.position.toolBar.top + 13 * scale;
             var icon_toolline_per = 46 * scale;
-    
+
             var text_firstline = 16 * scale, text_secondline = 52 * scale, text_thirdline = 75 * scale;
             var text_toolline = core.position.toolBar.top + 18 * scale;
-    
+
             core.position.items = {
                 'image': {
                     'size': 32*scale,
@@ -2900,12 +2900,12 @@ core.prototype.resize = function(clientWidth, clientHeight) {
             statusBarWidth *= scale
 
             core.position.gameGroup = {
-                'width': statusBarWidth + canvasWidth + 3, 
+                'width': statusBarWidth + canvasWidth + 3,
                 'height': canvasWidth,
-                'top': 3, 
+                'top': 3,
                 'left': (clientWidth - width - statusBarWidth)/2,
             }
-    
+
             // 这几项都是相对gameGroup的位置
             core.position.statusBar = {
                 'top': 0, 'left': 0,
@@ -2914,21 +2914,21 @@ core.prototype.resize = function(clientWidth, clientHeight) {
                 'fontSize': 16 * scale
             }
             core.position.canvas = {
-                'borderTop': '', 
+                'borderTop': '',
                 'borderLeft': '3px #fff solid',
                 'borderBottom': '',
-                'top': 0, 
-                'left': statusBarWidth, 
-                'width': canvasWidth, 
+                'top': 0,
+                'left': statusBarWidth,
+                'width': canvasWidth,
                 'height': canvasWidth
             }
             core.position.toolBar = {
                 'display': 'none', 'top': 0, 'left': 0, 'width': 0, 'height': 0
             }
-    
+
             var first_col = 8 * scale, second_col = 50 * scale, third_col = 92 * scale;
             var first_icon_row = 20 * scale, first_text_row = 28 * scale, first_tool_row = 303 * scale, per_row = 40 * scale;
-    
+
             core.position.items = {
                 'image': {
                     'size': 32*scale,
@@ -2960,7 +2960,7 @@ core.prototype.resize = function(clientWidth, clientHeight) {
                 'hard': {'top': 383*scale, 'left': 43*scale}
             }
         }
-        
+
     }else { //大屏设备 pc端
         core.position.scale = 1;
         core.position.screenMode = 'bigScreen';
