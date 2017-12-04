@@ -351,11 +351,16 @@ events.prototype.clickShop = function(x,y) {
             core.ui.drawShop(core.status.event.data.id);
             return;
         }
+        // 返回商店列表
+        if(core.status.fromShopList && y == 9){
+            core.status.boxAnimateObjs = [];
 
+            core.ui.drawSelectShop()
+        }
         // 退出商店
-        if (y == 9) {
-            core.status.event.data = null;
+        if (y == 10) {
             core.ui.closePanel();
+            core.status.fromShopList = false;
             return;
         }
     }
@@ -379,9 +384,11 @@ events.prototype.clickSelectShop = function(x,y) {
                 else core.drawTip('该商店已失效');
                 return;
             }
+            core.status.fromShopList = true;
             core.ui.drawShop(keys[y - topIndex]);
         }
         if (y == exitIndex) {
+            core.status.fromShopList = false;
             core.ui.closePanel();
         }
     }
