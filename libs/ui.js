@@ -272,8 +272,11 @@ ui.prototype.drawShop = function (id) {
             text += "（"+eval(choice.need)+use+"）"
         core.fillText('ui', text, 208, top + 120 + 32 * i, "#FFFFFF", "bold 17px Verdana");
     }
-    core.fillText('ui', "退出商店", 208, top + 248);
+    if(core.status.fromShopList){
+        core.fillText('ui', "返回商店列表", 208, top + 235);
+    }
 
+    core.fillText('ui', "退出商店", 208, top + 265);
 }
 
 

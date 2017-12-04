@@ -109,51 +109,6 @@ events.prototype.blockEvent = function (data) {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-/////////////////// onclick事件处理 ///////////////////
-
-events.prototype.clickSettings = function(x,y) {
-    if (y == 3) {
-        if (core.musicStatus.isIOS) {
-            core.drawTip("iOS设备不支持播放音乐");
-            return;
-        }
-        core.changeSoundStatus();
-        core.ui.openSettings(false);
-    }
-    if (y == 4) core.ui.selectShop();
-    if (y == 5) this.decreaseHard();
-    if (y == 6) {
-        core.ui.syncSave();
-    }
-    if (y == 7) {
-        core.showConfirmBox("你确定要重新开始吗？", function () {
-            // core.drawTip("重新开始游戏");
-            core.ui.closePanel();
-            core.restart();
-        }, function () {
-            core.ui.openSettings(false);
-        });
-    }
-    if (y==8) {
-        core.ui.drawAbout();
-        // core.debug();
-    }
-    if (y == 9) core.ui.closePanel();
-    return;
-}
-
-
 ////// 转换楼层结束的事件 //////
 events.prototype.afterChangeFloor = function (floorId) {
 
@@ -393,14 +348,19 @@ events.prototype.clickShop = function(x,y) {
             core.npcEffect(choice.effect);
 
             core.status.event.data.times++;
-            core.ui.openShop(core.status.event.data.id);
+            core.ui.drawShop(core.status.event.data.id);
             return;
         }
+        // 返回商店列表
+        if(core.status.fromShopList && y == 9){
+            core.status.boxAnimateObjs = [];
 
+            core.ui.drawSelectShop()
+        }
         // 退出商店
-        if (y == 9) {
-            core.status.event.data = null;
+        if (y == 10) {
             core.ui.closePanel();
+            core.status.fromShopList = false;
             return;
         }
     }
@@ -424,9 +384,11 @@ events.prototype.clickSelectShop = function(x,y) {
                 else core.drawTip('该商店已失效');
                 return;
             }
-            core.ui.openShop(keys[y - topIndex]);
+            core.status.fromShopList = true;
+            core.ui.drawShop(keys[y - topIndex]);
         }
         if (y == exitIndex) {
+            core.status.fromShopList = false;
             core.ui.closePanel();
         }
     }
